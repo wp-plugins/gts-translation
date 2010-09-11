@@ -23,6 +23,8 @@ onward, each time a new blog post is published it is automatically translated in
 choose to publish the translated content immediately (raw MT output), or to only publish the translated content after it
 has been approved by a moderator.
 
+Current release supports English to French, Italian, German and Spanish only.
+
 == Installation ==
 
 1. Upload the plugin directory to the `/wp-content/plugins/` directory or install via WordPress' automated install feature.
