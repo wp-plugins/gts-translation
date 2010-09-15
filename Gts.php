@@ -33,12 +33,12 @@
 
 /*
 
-Plugin Name: GTS
+Plugin Name: GTS Translation
 Plugin URI: http://gts-translation.com/
 Description: The only translation plugin that provides human translation of your blog content using community translation (crowdsourcing). Use our community of professional translators or use your own internal community. Currently supports French, Italian, German, Spanish (FIGS). All content is cached on your Wordpress database and indexed by search engines.
 Version: 1.0.b1
 Author: Steve van Loben Sels
-Author URI: http://metapossum.com/
+Author URI: http://gts-translation.com/
 
 Requires WP 2.8+, PHP 5.1.3+
 
