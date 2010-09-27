@@ -133,8 +133,16 @@ configuration page.
 
 Like above, it's tough to sort out what should be translated.  Plus, there are probably random English text strings embedded in the PHP
 source, function arguments, etc.  In order to get the most out of template translation, try these tips:
+
 * Wherever possible, try to keep your text *outside* of PHP code blocks.
-* If you must embed English text in PHP, then surround it with the WP `__` function.  e.g. instead of `random_php_method('hello')` use `random_php_method(__('hello'))`.  **IMPORTANT** this only works for single-quoted strings.
+* If you must embed English text in PHP, then surround it with the WP `__` function or its variants e.g. `random_php_method('hello')`
+ becomes `random_php_method(__('hello'))`.  IMPORTANT this only works for single-quoted arguments.  recognized functions are:
+    * `_e`
+    * `translate`
+    * `esc_attr__`
+    * `esc_attr_e`
+    * `esc_html__`
+    * `esc_html_e`.
 
 Some english language text comes from deep down in WordPress' code, so you probably won't be able to get 100% of the text, but you should
 be able to get the lion's share taken care of.
