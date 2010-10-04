@@ -123,7 +123,7 @@ class GtsLinkRewriter {
                 // have the translated value in the URL.  oh well.
                 if( remove_query_arg( 'tag', $link ) != $link ) {
                     $query_param = 'tag';
-                    $id = $gts_plugin->do_without_language( 'get_slug_without_language', $id );
+                    $id = $gts_plugin->do_without_language( array( $this, 'get_slug_without_language' ), $id );
                 }
                 else if( remove_query_arg( 'cat', $link ) != $link ) {
                     $query_param = 'cat';

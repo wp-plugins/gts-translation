@@ -114,34 +114,31 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
                     $interesting_part = preg_replace( '/^language\/[a-z]{2}\/?/', '', $interesting_part);
 
-                    if( is_tag() || is_category() || is_single() || is_page() ) {
-
-                        if( is_tag() ) {
+                    if( is_tag() && get_query_var( 'tag' ) ) {
                             $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_tag_link' ) );
                         }
-                        else if( is_category() ) {
+                    else if( is_category() && get_query_var( 'cat' ) ) {
                             $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_category_link' ) );
                         }
-                        else if( is_single() ) {
+                    else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
                             $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_post_link' ) );
                         }
                         else if( is_page() ) {
                             $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_page_link' ) );
                         }
-                    }
                     else {
                         $link = $home . $interesting_part;
                     }
                 }
                 else {
 
-                    if( is_tag() ) {
+                    if( is_tag() && get_query_var( 'tag' ) ) {
                         $link = $gts_plugin->do_with_language( array( $this, 'callback_get_translated_tag_link' ), $lang->code);
                     }
-                    else if ( is_category() ) {
+                    else if ( is_category() && get_query_var( 'cat' ) ) {
                         $link = $gts_plugin->do_with_language( array( $this, 'callback_get_translated_category_link' ), $lang->code);
                     }
-                    else if( is_single() ) {
+                    else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
                         $link = $gts_plugin->do_with_language( array( $this, 'callback_get_translated_post_link' ), $lang->code);
                     }
                     else if( is_page() ) {
@@ -210,9 +207,9 @@ class GTS_LanguageSelectWidget extends WP_Widget {
             ?>
             </select>
 
-            <p style="vertical-align: middle;">
+            <p style="vertical-align: middle; margin-top:3px">
                 <span><?php echo GTS_LanguageSelectWidget::$POWERED_BY[$curr_lang]; ?>
-                    <a href="http://www.gts-translation.com/" target="_blank"><img height="16" src="<?php echo GTS_PLUGIN_URL ?>/wordpress/images/logo_trans.png"/></a>
+                    <a href="http://www.gts-translation.com/" target="_blank"><img src="<?php echo GTS_PLUGIN_URL ?>/wordpress/images/logo_trans_sm.png"/></a>
                 </span>
             </p>
         </div>
@@ -227,7 +224,16 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
 
     function callback_get_straight_tag_link() {
-        return get_tag_link( get_query_var( 'tag' ) );
+
+        global $wp_rewrite;
+
+        $tag_param = get_query_var( 'tag' );
+        $term_id = ( $wp_rewrite->permalink_structure ?
+                $term_id = get_term_by( 'slug', $tag_param, 'post_tag' )->term_id :
+                $tag_param
+        );
+        
+        return get_tag_link( $term_id );
     }
     
     function callback_get_straight_category_link() {

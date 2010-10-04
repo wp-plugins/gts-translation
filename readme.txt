@@ -165,8 +165,15 @@ Please see the Security tab.
 
 == Changelog ==
 
-= 1.0b01 =
+= 1.0.b1 =
 * Initial limited beta release
+
+= 1.0.b2 =
+* A handful of minor bugfixes.
+
+= 1.0.b3 =
+* Bugfix for incorrect widget behavior triggered by certain themes.
+* Minor CSS tweaks to widget
 
 == Uninstalling ==
 
