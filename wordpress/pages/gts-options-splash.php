@@ -81,17 +81,17 @@ $url = "https://$host" . ( $port == 443 ? '' : ":$port") . "/api/setup/landing";
     <?php } ?>
     </form>
 
-    <h2>GTS</h2>
+    <h2>GTS Translation</h2>
 
     <p>
-        Before we can start translating your blog, <i><?php echo get_option('blogname')?></i>, you need to
+        Before we can start translating your blog, you need to
         <a style="font-weight: bold; cursor: pointer" onclick="document.getElementById('registrationForm').submit()">register</a> with GTS.
     </p>
 
     <p>
         If you have previously registered and have the activation information GTS sent to you via email, please follow the
-        link provided in that mail to finalize the registration process.  Please click <a href="#">here</a> if you need to
-        have that email re-sent.  <b>NOTE: emails are not currently sent...will be part of public release</b>
+        link provided in that mail to finalize the registration process.  If you cannot locate the email, please get in touch
+        with <a href="mailto:info@gts-translation.com">info@gts-translation.com</a>.
     </p>
 
 </div>

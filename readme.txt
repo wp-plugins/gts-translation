@@ -178,6 +178,9 @@ Please see the Security tab.
 = 1.0.b4 =
 * Fix missing image on the widget
 
+= 1.0.b5 =
+* Rework splash page and remove Beta Text.
+
 == Uninstalling ==
 
 Simply click the "Delete" link in the plugin management window.  This will delete all of your translated data, so

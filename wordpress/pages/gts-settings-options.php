@@ -98,7 +98,7 @@ function format_api_key( $key, $chunk = 32 ) {
 
 ?>
 <div class="wrap">
-    <h2>GTS</h2>
+    <h2>GTS Translation</h2>
 
     <?php if( $options_initialized ) { ?>
         <div class="updated">
