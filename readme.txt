@@ -180,6 +180,8 @@ Please see the Security tab.
 
 = 1.0.b5 =
 * Rework splash page and remove Beta Text.
+* Bugfix with theme translation iframe callback.
+
 
 == Uninstalling ==
 

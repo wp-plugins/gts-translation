@@ -66,7 +66,7 @@ that the translation process mangles your PHP code.  If that happens, simply unt
                 <iframe name="translate_theme_iframe" id="translate_theme_iframe" style="display: none" width="400" height="75"
                         scrolling="true"></iframe>
                 <input id="translate_theme_button" type="button" value="Translate Theme"
-                       onclick="jQuery('#translate_theme_iframe').show(); document.getElementById('translate_theme_iframe').src='<?php echo WP_PLUGIN_URL ?>/gts/callbacks/gts-translate-theme-frame.php'; jQuery(this).hide(); "/>
+                       onclick="jQuery('#translate_theme_iframe').show(); document.getElementById('translate_theme_iframe').src='<?php echo WP_PLUGIN_URL ?>/gts-translation/callbacks/gts-translate-theme-frame.php'; jQuery(this).hide(); "/>
             </td>
         </tr>
         <tr>
