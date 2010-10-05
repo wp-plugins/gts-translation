@@ -175,6 +175,9 @@ Please see the Security tab.
 * Bugfix for incorrect widget behavior triggered by certain themes.
 * Minor CSS tweaks to widget
 
+= 1.0.b4 =
+* Fix missing image on the widget
+
 == Uninstalling ==
 
 Simply click the "Delete" link in the plugin management window.  This will delete all of your translated data, so
