@@ -262,6 +262,8 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function register_filters() {
 
+        add_filter( 'locale', array($this, 'get_translation_locale'), 1 );
+
         add_filter( 'the_title', array($this, 'get_translated_title'), 1, 2 );
         add_filter( 'page_title', array($this, 'get_translated_title'), 1, 2 );
 
@@ -278,6 +280,15 @@ class GtsPluginWordpress extends GtsPlugin {
         add_filter( 'option_home', array( $this, 'replace_hostname_if_available' ), 1 );
         add_filter( 'option_siteurl', array( $this, 'replace_hostname_if_available' ), 1 );
     }
+
+
+    function get_translation_locale( $locale ) {
+
+        // todo - might also have to do something like this: //load_textdomain( 'default', WP_LANG_DIR . "/es_ES.mo" );
+
+        return $locale;
+    }
+
 
     function replace_hostname_if_available( $url ) {
 

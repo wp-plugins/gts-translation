@@ -37,6 +37,12 @@ class GtsLinkRewriter {
     static $CATEGORY_PARAM = 'gts_category_id';
     static $PAGEPATH_PARAM = 'gts_pagepath';
 
+
+    var $original_tag;
+    var $original_category_id;
+    var $original_category_name;
+
+
     static $INTERESTING_OPTIONS = array(
         'tag_base',
         'category_base',
@@ -221,6 +227,12 @@ class GtsLinkRewriter {
 
         $this->replace_with_slug( $query_vars, GtsLinkRewriter::$TAG_PARAM, 'tag', 'get_tag' );
         $this->replace_with_slug( $query_vars, GtsLinkRewriter::$CATEGORY_PARAM, 'category_name', 'get_category' );
+
+        // these are stashed so that the widget can later get at them without having been
+        // overwritten in the query by other plugins (e.g. Simply Exclude)
+        $this->original_tag = $query_vars['tag'];
+        $this->original_category_id = $query_vars['cat'];
+        $this->original_category_name = $query_vars['category_name'];
 
         if( $query_vars[GtsLinkRewriter::$LANG_PARAM] && $query_vars['pagename'] ) {
             $query_vars['pagename'] = $this->get_original_pagename( $query_vars['pagename'], $query_vars['gts_lang'] );

@@ -182,6 +182,9 @@ Please see the Security tab.
 * Rework splash page and remove Beta Text.
 * Bugfix with theme translation iframe callback.
 
+= 1.0.b6 =
+* Support for multi-tag and multi-category URLs
+* Resolve conflict between widget and Simply Exclude plugin
 
 == Uninstalling ==
 

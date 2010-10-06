@@ -135,7 +135,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                     if( is_tag() && get_query_var( 'tag' ) ) {
                         $link = $gts_plugin->do_with_language( array( $this, 'callback_get_translated_tag_link' ), $lang->code);
                     }
-                    else if ( is_category() && get_query_var( 'cat' ) ) {
+                    else if ( is_category() && get_query_var( 'cat' ) && ( $gts_plugin->link_rewriter->original_category_id || $gts_plugin->link_rewriter->original_category_name ) ) {
                         $link = $gts_plugin->do_with_language( array( $this, 'callback_get_translated_category_link' ), $lang->code);
                     }
                     else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
@@ -225,7 +225,15 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
     function callback_get_straight_tag_link() {
 
-        global $wp_rewrite;
+        global $gts_plugin, $wp_rewrite;
+
+        // when there are multiple tags passed in, we need to
+        // use the query arg way of doing things.  remove the
+        // language arg from the current location, and we're all good.
+        $tags = $gts_plugin->link_rewriter->original_tag;
+        if( count(explode( ',', $tags ) ) > 1) {
+            return remove_query_arg( 'language' );
+        }
 
         $tag_param = get_query_var( 'tag' );
         $term_id = ( $wp_rewrite->permalink_structure ?
@@ -237,7 +245,17 @@ class GTS_LanguageSelectWidget extends WP_Widget {
     }
     
     function callback_get_straight_category_link() {
-        return get_category_link( get_query_var( 'cat' ) );
+        global $gts_plugin;
+
+        // like with tags, we have to check to see whether there were
+        // originally mulitple categories or not.  this will change
+        // whether we pemarlink or query-arg it.
+        $cat = $gts_plugin->link_rewriter->original_category_id;
+        if( count(explode( ',', $cat ) ) > 1) {
+            return remove_query_arg( 'language' );
+        }
+
+        return get_category_link( get_cat_ID( $gts_plugin->link_rewriter->original_category_name) );
     }
 
     function callback_get_straight_post_link() {
@@ -249,13 +267,33 @@ class GTS_LanguageSelectWidget extends WP_Widget {
     }
 
     function callback_get_translated_tag_link() {
+
+        global $gts_plugin;
+
+        // when there are multiple tags passed in, we need to
+        // use the query arg way of doing things.  remove the
+        // language arg from the current location, and we're all good.
+        $tags = $gts_plugin->link_rewriter->original_tag;
+        if( count(explode( ',', $tags ) ) > 1) {
+            return add_query_arg( 'language', $gts_plugin->language );
+        }
+
         return get_tag_link( get_query_var('tag_id' ) );
     }
 
     function callback_get_translated_category_link() {
+
+        global $gts_plugin;
+
+        // check for multiple categories...
+        $cat = $gts_plugin->link_rewriter->original_category_id;
+        if( count(explode( ',', $cat ) ) > 1) {
+            return add_query_arg( 'language', $gts_plugin->language );
+        }
+
         $id = get_query_var( 'gts_category_id' );
         if( !$id ) {
-            $id = get_cat_ID( get_query_var( 'category_name' ) );
+            $id = get_cat_ID( $gts_plugin->link_rewriter->original_category_name );
         }
         return get_category_link( $id );
     }
