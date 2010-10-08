@@ -115,17 +115,17 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                     $interesting_part = preg_replace( '/^language\/[a-z]{2}\/?/', '', $interesting_part);
 
                     if( is_tag() && get_query_var( 'tag' ) ) {
-                            $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_tag_link' ) );
-                        }
+                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_tag_link' ) );
+                    }
                     else if( is_category() && get_query_var( 'cat' ) ) {
-                            $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_category_link' ) );
-                        }
+                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_category_link' ) );
+                    }
                     else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
-                            $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_post_link' ) );
-                        }
-                        else if( is_page() ) {
-                            $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_page_link' ) );
-                        }
+                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_post_link' ) );
+                    }
+                    else if( is_page() ) {
+                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_page_link' ) );
+                    }
                     else {
                         $link = $home . $interesting_part;
                     }
@@ -155,7 +155,9 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
                 // if we have permalinks, then make sure this parameter isn't hanging around where
                 // it may accidentally override the displayed page language.
-                $link = remove_query_arg( 'language', $link );
+                if ( ! preg_match( '/(\?|\&)(tag|cat)=/', $link ) ) {
+                    $link = remove_query_arg( 'language', $link );
+                }
             }
 
             if ( !$is_current ) {
@@ -175,6 +177,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         ?>
 
         <div class="gtsLanguageSelector">
+            <!-- GTS Plugin Version <?php $data = get_file_data( GTS_PLUGIN_DIR . '/Gts.php', array( 'Version' => 'Version' ), 'plugin' ); echo $data['Version'] ?> -->
 
         <?php if($title) {
             echo $before_title . $title . ":" . $after_title;
@@ -255,7 +258,8 @@ class GTS_LanguageSelectWidget extends WP_Widget {
             return remove_query_arg( 'language' );
         }
 
-        return get_category_link( get_cat_ID( $gts_plugin->link_rewriter->original_category_name) );
+        $cat = get_term_by( 'slug', $gts_plugin->link_rewriter->original_category_name, 'category' );
+        return get_category_link( $cat ? $cat->term_id : 0 );
     }
 
     function callback_get_straight_post_link() {
@@ -293,7 +297,8 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
         $id = get_query_var( 'gts_category_id' );
         if( !$id ) {
-            $id = get_cat_ID( $gts_plugin->link_rewriter->original_category_name );
+            $cat = get_term_by( 'slug', $gts_plugin->link_rewriter->original_category_name, 'category' );
+            $id = $cat ? $cat->term_id : 0;
         }
         return get_category_link( $id );
     }

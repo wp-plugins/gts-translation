@@ -165,26 +165,29 @@ Please see the Security tab.
 
 == Changelog ==
 
-= 1.0.b1 =
-* Initial limited beta release
+= 1.0.b7 =
+* Fix widget bug with multi-word category link rewrites.
 
-= 1.0.b2 =
-* A handful of minor bugfixes.
-
-= 1.0.b3 =
-* Bugfix for incorrect widget behavior triggered by certain themes.
-* Minor CSS tweaks to widget
-
-= 1.0.b4 =
-* Fix missing image on the widget
+= 1.0.b6 =
+* Support for multi-tag and multi-category URLs
+* Resolve conflict between widget and Simply Exclude plugin
 
 = 1.0.b5 =
 * Rework splash page and remove Beta Text.
 * Bugfix with theme translation iframe callback.
 
-= 1.0.b6 =
-* Support for multi-tag and multi-category URLs
-* Resolve conflict between widget and Simply Exclude plugin
+= 1.0.b4 =
+* Fix missing image on the widget
+
+= 1.0.b3 =
+* Bugfix for incorrect widget behavior triggered by certain themes.
+* Minor CSS tweaks to widget
+
+= 1.0.b2 =
+* A handful of minor bugfixes.
+
+= 1.0.b1 =
+* Initial limited beta release
 
 == Uninstalling ==
 
