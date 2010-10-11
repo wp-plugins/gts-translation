@@ -57,7 +57,10 @@ class GtsConfig {
 
     var $plugin_version = GTS_PLUGIN_VERSION;
     var $plugin_initialized;
+    var $indexes_on_translated_slugs;
 
     var $synchronous;
     var $use_translated_theme;
+
+    // todo - upgrade schema here.
 }

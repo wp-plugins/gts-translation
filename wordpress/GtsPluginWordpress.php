@@ -75,6 +75,18 @@ class GtsPluginWordpress extends GtsPlugin {
         else {
             $this->theme_language = $_GET['language'];
         }
+
+        if( !$this->config->indexes_on_translated_slugs ) {
+
+            foreach ( array( 'gts_translated_posts', 'gts_translated_terms' ) as $table_name ) {
+                $table_name = $wpdb->prefix . $table_name;
+                $column_name = preg_match( '/_posts$/', $table_name ) ? 'post_slug(255)' : 'slug';
+                $wpdb->query( "CREATE INDEX ${table_name}_slug_lang ON $table_name($column_name,language)");
+            }
+
+            $this->config->indexes_on_translated_slugs = true;
+            $this->save_config();
+        }
     }
 
 
@@ -461,6 +473,15 @@ class GtsPluginWordpress extends GtsPlugin {
         return $this->wpdb->get_row(
             $this->wpdb->prepare(
                 "SELECT * FROM " . $this->wpdb->prefix . "gts_translated_terms WHERE local_name = %s AND language = %s",
+                $name, $language
+            )
+        );
+    }
+
+    function get_translated_blog_term_by_slug( $name, $language ) {
+        return $this->wpdb->get_row(
+            $this->wpdb->prepare(
+                "SELECT * FROM " . $this->wpdb->prefix . "gts_translated_terms WHERE slug = %s AND language = %s",
                 $name, $language
             )
         );

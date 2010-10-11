@@ -263,7 +263,17 @@ class GTS_LanguageSelectWidget extends WP_Widget {
     }
 
     function callback_get_straight_post_link() {
-        return get_permalink( get_query_var( 'p' ) );
+
+        if( ! $post_id = get_query_var( 'p' ) && isset( $GLOBALS['post'] ) ) {
+            $post_id = $GLOBALS['post']->ID;
+        }
+
+        // have to boot the post from the cache so that it reloads without
+        // all of our filters messing with it.  otherwise, it will get the
+        // tranlsated post_name.
+        wp_cache_delete( $post_id, 'posts' );
+
+        return get_permalink( $post_id );
     }
 
     function callback_get_straight_page_link() {

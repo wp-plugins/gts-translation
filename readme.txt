@@ -165,6 +165,10 @@ Please see the Security tab.
 
 == Changelog ==
 
+= 1.0.b8 =
+* Remove ID positional parameters from post, tag, and category links so they appear more WP like and to avoid conflicts with other
+plugins or .htaccess files that control the permalink format.
+
 = 1.0.b7 =
 * Fix widget bug with multi-word category link rewrites.
 

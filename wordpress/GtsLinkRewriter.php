@@ -33,8 +33,6 @@
 class GtsLinkRewriter {
 
     static $LANG_PARAM = 'gts_lang';
-    static $TAG_PARAM = 'gts_tag_id';
-    static $CATEGORY_PARAM = 'gts_category_id';
     static $PAGEPATH_PARAM = 'gts_pagepath';
 
 
@@ -58,14 +56,11 @@ class GtsLinkRewriter {
         'month_link',
         //'page_link', - taking care of this one explicitly
         'year_link',
-    );
-
-    static $COMPOUND_LINKS = array(
         'category_link',
         //'category_feed_link',  - this is a compound one...depends on the category_link
-        //'post_link',  - we're taking care of this one explicitly
         'tag_link',
     );
+
 
     function register_plugin_hooks() {
 
@@ -89,10 +84,6 @@ class GtsLinkRewriter {
 
         foreach ( GtsLinkRewriter::$SIMPLE_LINKS as $filter_name ) {
             add_filter( $filter_name, array($this, 'add_language_parameter') );
-        }
-
-        foreach ( GtsLinkRewriter::$COMPOUND_LINKS as $filter_name ) {
-            add_filter( $filter_name, array($this, 'add_language_and_term_id_parameters'), 10, 2 );
         }
     }
 
@@ -196,14 +187,14 @@ class GtsLinkRewriter {
             // been swapped out.  sometimes, this filter is entered via a route where it's not possible
             // to action or filter the post content to our own (notably in the prev/next link functions...lame).
             // in those cases, we have to do a transformation on the link.
-            if( preg_match( '/%postname%/', $permalink ) && !$post->gts_translated ) {
+            if( preg_match( '/%postname%/', $permalink ) && ( !$post->gts_translated || $post->language != $gts_plugin->language ) ) {
                 $tpost = $gts_plugin->get_translated_blog_post( $post->ID, $gts_plugin->language );
                 if( $tpost ) {
                     $link = str_replace( $post->post_name, $tpost->post_slug, $link );
                 }
             }
 
-            return $this->add_language_parameter( $this->insert_param( $link, "p", $post->ID, false) );
+            return $this->add_language_parameter( $link );
         }
 
         return $link;
@@ -225,8 +216,9 @@ class GtsLinkRewriter {
 
     function fix_term_parameters( $query_vars ) {
 
-        $this->replace_with_slug( $query_vars, GtsLinkRewriter::$TAG_PARAM, 'tag', 'get_tag' );
-        $this->replace_with_slug( $query_vars, GtsLinkRewriter::$CATEGORY_PARAM, 'category_name', 'get_category' );
+        $this->replace_with_slug( $query_vars, 'tag' );
+        $this->replace_with_slug( $query_vars, 'name' );
+        $this->replace_with_slug( $query_vars, 'category_name' );
 
         // these are stashed so that the widget can later get at them without having been
         // overwritten in the query by other plugins (e.g. Simply Exclude)
@@ -241,10 +233,6 @@ class GtsLinkRewriter {
         // this one is always set regardless of language.  we use it later to pick up pages because wordpress
         // rewrites the pagename param to be just the last portion, which can't easily be used for lookups.
         $query_vars[GtsLinkRewriter::$PAGEPATH_PARAM] = $query_vars['pagename'];
-
-        if($query_vars["p"] && $query_vars["name"]) {
-            unset($query_vars["name"]);
-        }
 
         return $query_vars;
     }
@@ -276,15 +264,34 @@ class GtsLinkRewriter {
 
 
 
-    function replace_with_slug( &$query_vars, $gts_param_name, $param_name, $lookup_function ) {
+    function replace_with_slug( &$query_vars, $param_name ) {
 
         global $gts_plugin;
 
-        $gts_id = $query_vars[$gts_param_name];
-        if( $gts_id ) {
-            $object = $gts_plugin->do_without_language( $lookup_function, $gts_id );
-            if( $object ) {
-                $query_vars[$param_name] = $object->slug;
+        // this method gets called from code points before and after the variables are bound.
+        // if before, then we need to go to the theme language variable, even though that could
+        // in theory be wrong b/c it's not the *final* value.
+        if(! $language = $gts_plugin->language ) {
+            $language = $gts_plugin->theme_language;
+        }
+
+        if( $language && $param_value = $query_vars[$param_name] ) {
+
+            if( $param_name == 'name' ) {
+                if( $translated_post = $gts_plugin->get_translated_blog_post_by_slug( $param_value, $language ) ) {
+                    if( $original_post = get_post( $translated_post->local_id) ) {
+                        $query_vars[$param_name] = $original_post->post_name;
+                    }
+                }
+            }
+            else {
+                
+                // todo - need to distinguish between category and tag in case translations collide.
+                if( $translated_term = $gts_plugin->get_translated_blog_term_by_slug( $param_value, $language ) ) {
+                    if( $original_term = get_term_by( 'id', $translated_term->local_name, $param_name == 'tag' ? 'post_tag' : 'category' ) ) {
+                        $query_vars[$param_name] = $original_term->slug;
+                    }
+                }
             }
         }
     }
@@ -292,7 +299,7 @@ class GtsLinkRewriter {
 
 
     function add_query_params( $query_vars ) {
-        array_push( $query_vars , GtsLinkRewriter::$LANG_PARAM, GtsLinkRewriter::$TAG_PARAM, GtsLinkRewriter::$CATEGORY_PARAM );
+        array_push( $query_vars , GtsLinkRewriter::$LANG_PARAM );
         return $query_vars;
     }
 
@@ -305,8 +312,6 @@ class GtsLinkRewriter {
         if($wp_rewrite->permalink_structure) {
 
             $wp_rewrite->add_rewrite_tag('%'.GtsLinkRewriter::$LANG_PARAM.'%', '([a-z]{2})', GtsLinkRewriter::$LANG_PARAM . '=' );
-            $wp_rewrite->add_rewrite_tag('%'.GtsLinkRewriter::$TAG_PARAM.'%', '([0-9]+)', GtsLinkRewriter::$TAG_PARAM . '=' );
-            $wp_rewrite->add_rewrite_tag('%'.GtsLinkRewriter::$CATEGORY_PARAM.'%', '([0-9]+)', GtsLinkRewriter::$CATEGORY_PARAM . '=' );
 
             // todo - option-ize and localize this prefix.
             // todo - also localize tag/category in url.
@@ -323,7 +328,7 @@ class GtsLinkRewriter {
 
             $newrules += $wp_rewrite->generate_rewrite_rules( "$lang_prefix/" . $wp_rewrite->comments_base, EP_COMMENTS, true, true, true, false );
             
-            $newrules += $wp_rewrite->generate_rewrite_rules( "$lang_prefix/%post_id%$wp_rewrite->permalink_structure", EP_PERMALINK );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->permalink_structure, EP_PERMALINK );
 
             // this appears to be a bug in wordpress that we need to work around...  it's eating up our gts_lang variable in places relating
             // to attachments.  this hack seems to fix it, but only when we run it just after adding the permalink rules.  not sure why it has
@@ -341,8 +346,8 @@ class GtsLinkRewriter {
                 }
             }
 
-            $newrules += $wp_rewrite->generate_rewrite_rules( "$lang_prefix/%" . GtsLinkRewriter::$TAG_PARAM . '%' . $wp_rewrite->get_tag_permastruct(), EP_TAGS );
-            $newrules += $wp_rewrite->generate_rewrite_rules( "$lang_prefix/%" . GtsLinkRewriter::$CATEGORY_PARAM . '%' . $wp_rewrite->get_category_permastruct(), EP_CATEGORIES );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_tag_permastruct(), EP_TAGS );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_category_permastruct(), EP_CATEGORIES );
 
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_author_permastruct(), EP_AUTHORS );
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_search_permastruct(), EP_SEARCH );
