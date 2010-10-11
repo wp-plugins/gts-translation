@@ -86,6 +86,8 @@ class GtsPluginWordpress extends GtsPlugin {
 
             $this->config->indexes_on_translated_slugs = true;
             $this->save_config();
+
+            $this->link_rewriter->flush_rewrite_rules();
         }
     }
 

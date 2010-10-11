@@ -115,16 +115,16 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                     $interesting_part = preg_replace( '/^language\/[a-z]{2}\/?/', '', $interesting_part);
 
                     if( is_tag() && get_query_var( 'tag' ) ) {
-                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_tag_link' ) );
+                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_tag_link' ) );
                     }
                     else if( is_category() && get_query_var( 'cat' ) ) {
-                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_category_link' ) );
+                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_category_link' ) );
                     }
                     else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
-                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_post_link' ) );
+                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_post_link' ) );
                     }
                     else if( is_page() ) {
-                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_straight_page_link' ) );
+                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_page_link' ) );
                     }
                     else {
                         $link = $home . $interesting_part;
@@ -133,16 +133,16 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                 else {
 
                     if( is_tag() && get_query_var( 'tag' ) ) {
-                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_translated_tag_link' ), $lang->code);
+                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_tag_link' ), $lang->code);
                     }
                     else if ( is_category() && get_query_var( 'cat' ) && ( $gts_plugin->link_rewriter->original_category_id || $gts_plugin->link_rewriter->original_category_name ) ) {
-                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_translated_category_link' ), $lang->code);
+                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_category_link' ), $lang->code);
                     }
                     else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
-                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_translated_post_link' ), $lang->code);
+                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_post_link' ), $lang->code);
                     }
                     else if( is_page() ) {
-                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_translated_page_link' ), $lang->code);
+                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_page_link' ), $lang->code);
                     }
                     else if(!preg_match( '/^(language\/)([a-z]{2})(\/.*)?$/', $interesting_part, $matches ) ) {
                         $link = $home . 'language/' . $lang->code . '/' . $interesting_part;
@@ -225,29 +225,45 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         return $new_instance;
     }
 
+    function callback_get_post_link() {
 
-    function callback_get_straight_tag_link() {
+        if( ! $post_id = get_query_var( 'p' ) && isset( $GLOBALS['post'] ) ) {
+            $post_id = $GLOBALS['post']->ID;
+        }
 
-        global $gts_plugin, $wp_rewrite;
+        // boot the post from our cache so that it gets reloaded with our current
+        // filters.  then we delete it again to make sure that a translated version
+        // doesn't end up in the cache for other display stuff.
+        wp_cache_delete( $post_id, 'posts' );
+
+        $link = get_permalink( $post_id );
+
+        wp_cache_delete( $post_id, 'posts' );
+
+        return $link;
+    }
+
+    function callback_get_tag_link() {
+
+        global $gts_plugin;
 
         // when there are multiple tags passed in, we need to
         // use the query arg way of doing things.  remove the
         // language arg from the current location, and we're all good.
         $tags = $gts_plugin->link_rewriter->original_tag;
         if( count(explode( ',', $tags ) ) > 1) {
-            return remove_query_arg( 'language' );
+            if( $gts_plugin->language ) {
+            return add_query_arg( 'language', $gts_plugin->language );
+        }
+            else {
+                return remove_query_arg( 'language' );
+            }
         }
 
-        $tag_param = get_query_var( 'tag' );
-        $term_id = ( $wp_rewrite->permalink_structure ?
-                $term_id = get_term_by( 'slug', $tag_param, 'post_tag' )->term_id :
-                $tag_param
-        );
-        
-        return get_tag_link( $term_id );
+        return get_tag_link( get_query_var('tag_id' ) );
     }
-    
-    function callback_get_straight_category_link() {
+
+    function callback_get_category_link() {
         global $gts_plugin;
 
         // like with tags, we have to check to see whether there were
@@ -255,76 +271,22 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         // whether we pemarlink or query-arg it.
         $cat = $gts_plugin->link_rewriter->original_category_id;
         if( count(explode( ',', $cat ) ) > 1) {
-            return remove_query_arg( 'language' );
+            if( $gts_plugin->language ) {
+            return add_query_arg( 'language', $gts_plugin->language );
         }
+            else {
+                return remove_query_arg( 'language' );
+        }
+    }
 
-        $cat = get_term_by( 'slug', $gts_plugin->link_rewriter->original_category_name, 'category' );
+
+        $cat = get_term_by( 'slug', get_query_var( 'category_name' ), 'category' );
         return get_category_link( $cat ? $cat->term_id : 0 );
     }
 
-    function callback_get_straight_post_link() {
-
-        if( ! $post_id = get_query_var( 'p' ) && isset( $GLOBALS['post'] ) ) {
-            $post_id = $GLOBALS['post']->ID;
-        }
-
-        // have to boot the post from the cache so that it reloads without
-        // all of our filters messing with it.  otherwise, it will get the
-        // tranlsated post_name.
-        wp_cache_delete( $post_id, 'posts' );
-
-        return get_permalink( $post_id );
-    }
-
-    function callback_get_straight_page_link() {
+    function callback_get_page_link() {
         return get_page_link( get_page_by_path( get_query_var( GtsLinkRewriter::$PAGEPATH_PARAM ) )->ID );
     }
-
-    function callback_get_translated_tag_link() {
-
-        global $gts_plugin;
-
-        // when there are multiple tags passed in, we need to
-        // use the query arg way of doing things.  remove the
-        // language arg from the current location, and we're all good.
-        $tags = $gts_plugin->link_rewriter->original_tag;
-        if( count(explode( ',', $tags ) ) > 1) {
-            return add_query_arg( 'language', $gts_plugin->language );
-        }
-
-        return get_tag_link( get_query_var('tag_id' ) );
-    }
-
-    function callback_get_translated_category_link() {
-
-        global $gts_plugin;
-
-        // check for multiple categories...
-        $cat = $gts_plugin->link_rewriter->original_category_id;
-        if( count(explode( ',', $cat ) ) > 1) {
-            return add_query_arg( 'language', $gts_plugin->language );
-        }
-
-        $id = get_query_var( 'gts_category_id' );
-        if( !$id ) {
-            $cat = get_term_by( 'slug', $gts_plugin->link_rewriter->original_category_name, 'category' );
-            $id = $cat ? $cat->term_id : 0;
-        }
-        return get_category_link( $id );
-    }
-
-    function callback_get_translated_post_link() {
-        $id = get_query_var( 'p' );
-        if( !$id ) {
-            $id = get_page_by_title( get_query_var( 'name' ) )->ID;
-        }
-        return get_permalink( $id );
-    }
-
-    function callback_get_translated_page_link() {
-        return get_page_link( get_page_by_path( get_query_var( GtsLinkRewriter::$PAGEPATH_PARAM ) )->ID );
-    }
-
 
 
     function get_homed_url( $home, $lang ) {

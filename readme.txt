@@ -165,6 +165,9 @@ Please see the Security tab.
 
 == Changelog ==
 
+= 1.0.b9 =
+* Resolve bugs with nested categories and other various bad permalinks as a result of the changes in 1.0.b8.
+
 = 1.0.b8 =
 * Remove ID positional parameters from post, tag, and category links so they appear more WP like and to avoid conflicts with other
 plugins or .htaccess files that control the permalink format.

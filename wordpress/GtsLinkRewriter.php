@@ -216,15 +216,22 @@ class GtsLinkRewriter {
 
     function fix_term_parameters( $query_vars ) {
 
-        $this->replace_with_slug( $query_vars, 'tag' );
-        $this->replace_with_slug( $query_vars, 'name' );
-        $this->replace_with_slug( $query_vars, 'category_name' );
-
         // these are stashed so that the widget can later get at them without having been
         // overwritten in the query by other plugins (e.g. Simply Exclude)
         $this->original_tag = $query_vars['tag'];
         $this->original_category_id = $query_vars['cat'];
         $this->original_category_name = $query_vars['category_name'];
+
+        // for simplicity sake, only track the leaf category in the case of nesting.
+        $idx = strrpos( $this->original_category_name, '/' );
+        if( $idx !== FALSE && $idx != strlen( $this->original_category_name ) - 1 ) {
+            $this->original_category_name = substr( $this->original_category_name, $idx + 1 );
+        }
+
+        // now do replacements for any of our translated slugs.
+        $this->replace_with_slug( $query_vars, 'tag' );
+        $this->replace_with_slug( $query_vars, 'name' );
+        $this->replace_with_slug( $query_vars, 'category_name' );
 
         if( $query_vars[GtsLinkRewriter::$LANG_PARAM] && $query_vars['pagename'] ) {
             $query_vars['pagename'] = $this->get_original_pagename( $query_vars['pagename'], $query_vars['gts_lang'] );
@@ -286,14 +293,23 @@ class GtsLinkRewriter {
             }
             else {
                 
+                // to catch the nested category case.
+                if( $param_name == 'category_name' ) {
+                    $param_value = $this->original_category_name;
+                }
+
                 // todo - need to distinguish between category and tag in case translations collide.
                 if( $translated_term = $gts_plugin->get_translated_blog_term_by_slug( $param_value, $language ) ) {
-                    if( $original_term = get_term_by( 'id', $translated_term->local_name, $param_name == 'tag' ? 'post_tag' : 'category' ) ) {
-                        $query_vars[$param_name] = $original_term->slug;
+                    $query_vars[$param_name] = $this->get_original_slug( $translated_term->local_name );
                     }
                 }
             }
         }
+
+
+    function get_original_slug( $id ) {
+        global $wpdb;
+        return $wpdb->get_var("SELECT slug FROM " . $wpdb->prefix . "terms WHERE term_id = $id" );
     }
 
 
