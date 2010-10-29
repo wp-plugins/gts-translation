@@ -181,7 +181,7 @@ function format_api_key( $key, $chunk = 32 ) {
             <?php if ( $is_debug ) { ?>
             <script type="text/javascript">
                 function ajax_reset_plugin() {
-                    if ( confirm('Are you sure you want to reset the plugin?  It must also be cleared on the backend.')) {
+                    if ( confirm('Are you sure you want to reset the plugin?  It will also be cleared on the backend.')) {
                         var data  = {
                             action: 'gts_kill_blog'
                         };

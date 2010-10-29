@@ -59,7 +59,8 @@ class GtsDbSchema {
             post_slug tinytext not null,
             created_time timestamp null default null,
             modified_time timestamp not null default now(),
-            UNIQUE KEY (local_id, language)
+            UNIQUE KEY (local_id, language),
+            UNIQUE KEY (post_slug(255), language)
         )",
 
 
@@ -73,7 +74,8 @@ class GtsDbSchema {
             description text,
             created_time timestamp null default null,
             modified_time timestamp not null default now(),
-            UNIQUE KEY (local_name, language)
+            UNIQUE KEY (local_name, language),
+            UNIQUE KEY (slug, language)
         )"
     );
     

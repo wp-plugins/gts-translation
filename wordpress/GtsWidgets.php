@@ -67,7 +67,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
         extract($args);
 
-        global $gts_plugin, $wp_rewrite;
+        global $gts_plugin;
 
         $available_langs = array ($gts_plugin->config->source_language);
         if( is_array( $gts_plugin->config->target_languages ) ) {
@@ -82,83 +82,9 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
         $languages_with_links = array();
         foreach($available_langs as $code) {
-
             $lang = com_gts_Language::get_by_code($code);
             $is_current = $lang->code == $curr_lang;
-            $is_source = $lang->code == $gts_plugin->config->source_language;
-
-            // this little ditty makes sure we get appropriate hostname replacement...
-            $home = trailingslashit( $gts_plugin->do_with_language( array( $this, 'callback_get_home' ), $is_source ? null : $lang->code ) );
-
-            // this is the easy case...  no permalinks.  then we just have to toggle the language
-            // parameter and we can call it a day.
-            if( !$wp_rewrite->permalink_structure ) {
-
-                $link = $this->get_homed_url( $home, null );
-                if( $lang->code == $gts_plugin->config->source_language ) {
-                    $link = remove_query_arg( "language", $link );
-                }
-                else {
-                    $link = add_query_arg( "language", $lang->code, $link );
-                }
-            }
-            else {
-
-                // and if we have permalink support, there's a whole mess of special cases.  most
-                // of them boil down to running the link through the plugin with the language overridden.
-
-                $homed_url = $this->get_homed_url( $home, $lang->code );
-                $interesting_part = substr( $homed_url, strlen( $home ) );
-
-                if( $is_source ) {
-
-                    $interesting_part = preg_replace( '/^language\/[a-z]{2}\/?/', '', $interesting_part);
-
-                    if( is_tag() && get_query_var( 'tag' ) ) {
-                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_tag_link' ) );
-                    }
-                    else if( is_category() && get_query_var( 'cat' ) ) {
-                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_category_link' ) );
-                    }
-                    else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
-                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_post_link' ) );
-                    }
-                    else if( is_page() ) {
-                        $link = $gts_plugin->do_without_language( array( $this, 'callback_get_page_link' ) );
-                    }
-                    else {
-                        $link = $home . $interesting_part;
-                    }
-                }
-                else {
-
-                    if( is_tag() && get_query_var( 'tag' ) ) {
-                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_tag_link' ), $lang->code);
-                    }
-                    else if ( is_category() && get_query_var( 'cat' ) && ( $gts_plugin->link_rewriter->original_category_id || $gts_plugin->link_rewriter->original_category_name ) ) {
-                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_category_link' ), $lang->code);
-                    }
-                    else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
-                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_post_link' ), $lang->code);
-                    }
-                    else if( is_page() ) {
-                        $link = $gts_plugin->do_with_language( array( $this, 'callback_get_page_link' ), $lang->code);
-                    }
-                    else if(!preg_match( '/^(language\/)([a-z]{2})(\/.*)?$/', $interesting_part, $matches ) ) {
-                        $link = $home . 'language/' . $lang->code . '/' . $interesting_part;
-                    }
-                    else {
-                        $link = $home . $matches[1] . $lang->code . $matches[3];
-                    }
-                }
-
-
-                // if we have permalinks, then make sure this parameter isn't hanging around where
-                // it may accidentally override the displayed page language.
-                if ( ! preg_match( '/(\?|\&)(tag|cat)=/', $link ) ) {
-                    $link = remove_query_arg( 'language', $link );
-                }
-            }
+            $link = $this->get_current_url_for_language( $lang );
 
             if ( !$is_current ) {
                 $languages_with_links[ $lang->code ] = $link;
@@ -177,7 +103,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         ?>
 
         <div class="gtsLanguageSelector">
-            <!-- GTS Plugin Version <?php $data = get_file_data( GTS_PLUGIN_DIR . '/Gts.php', array( 'Version' => 'Version' ), 'plugin' ); echo $data['Version'] ?> -->
+            <!-- GTS Plugin Version <?php echo GTS_PLUGIN_VERSION ?> -->
 
         <?php if($title) {
             echo $before_title . $title . ":" . $after_title;
@@ -212,7 +138,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
             <p style="vertical-align: middle; margin-top:3px">
                 <span><?php echo GTS_LanguageSelectWidget::$POWERED_BY[$curr_lang]; ?>
-                    <a href="http://www.gts-translation.com/" target="_blank"><img src="<?php echo GTS_PLUGIN_URL ?>/wordpress/images/logo_trans_sm.png"/></a>
+                    <a href="http://www.gts-translation.com/" target="_blank"><img src="<?php echo GTS_PLUGIN_URL ?>/wordpress/images/logo_trans_sm.png" alt="GTS Translation" title="GTS Translation"/></a>
                 </span>
             </p>
         </div>
@@ -223,6 +149,90 @@ class GTS_LanguageSelectWidget extends WP_Widget {
     /** @see WP_Widget::update */
     function update($new_instance, $old_instance) {
         return $new_instance;
+    }
+
+
+
+
+    function get_current_url_for_language( $lang ) {
+
+        global $gts_plugin, $wp_rewrite;
+        $is_source = $lang->code == $gts_plugin->config->source_language;
+
+        // this little ditty makes sure we get appropriate hostname replacement...
+        $home = trailingslashit( $gts_plugin->do_with_language( array( $this, 'callback_get_home' ), $is_source ? null : $lang->code ) );
+
+        // this is the easy case...  no permalinks.  then we just have to toggle the language
+        // parameter and we can call it a day.
+        if( !$wp_rewrite->permalink_structure ) {
+
+            $link = $this->get_homed_url( $home, null );
+            if( $lang->code == $gts_plugin->config->source_language ) {
+                $link = remove_query_arg( "language", $link );
+            }
+            else {
+                $link = add_query_arg( "language", $lang->code, $link );
+            }
+        }
+        else {
+
+            // and if we have permalink support, there's a whole mess of special cases.  most
+            // of them boil down to running the link through the plugin with the language overridden.
+
+            $homed_url = $this->get_homed_url( $home, $lang->code );
+            $interesting_part = substr( $homed_url, strlen( $home ) );
+
+            if( $is_source ) {
+
+                $interesting_part = preg_replace( '/^language\/[a-z]{2}\/?/', '', $interesting_part);
+
+                if( is_tag() && get_query_var( 'tag' ) ) {
+                    $link = $gts_plugin->do_without_language( array( $this, 'callback_get_tag_link' ) );
+                }
+                else if( is_category() && get_query_var( 'cat' ) ) {
+                    $link = $gts_plugin->do_without_language( array( $this, 'callback_get_category_link' ) );
+                }
+                else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
+                    $link = $gts_plugin->do_without_language( array( $this, 'callback_get_post_link' ) );
+                }
+                else if( is_page() ) {
+                    $link = $gts_plugin->do_without_language( array( $this, 'callback_get_page_link' ) );
+                }
+                else {
+                    $link = $home . $interesting_part;
+                }
+            }
+            else {
+
+                if( is_tag() && get_query_var( 'tag' ) ) {
+                    $link = $gts_plugin->do_with_language( array( $this, 'callback_get_tag_link' ), $lang->code);
+                }
+                else if ( is_category() && get_query_var( 'cat' ) && ( $gts_plugin->link_rewriter->original_category_id || $gts_plugin->link_rewriter->original_category_name ) ) {
+                    $link = $gts_plugin->do_with_language( array( $this, 'callback_get_category_link' ), $lang->code);
+                }
+                else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
+                    $link = $gts_plugin->do_with_language( array( $this, 'callback_get_post_link' ), $lang->code);
+                }
+                else if( is_page() ) {
+                    $link = $gts_plugin->do_with_language( array( $this, 'callback_get_page_link' ), $lang->code);
+                }
+                else if(!preg_match( '/^(language\/)([a-z]{2})(\/.*)?$/', $interesting_part, $matches ) ) {
+                    $link = $home . 'language/' . $lang->code . '/' . $interesting_part;
+                }
+                else {
+                    $link = $home . $matches[1] . $lang->code . $matches[3];
+                }
+            }
+
+
+            // if we have permalinks, then make sure this parameter isn't hanging around where
+            // it may accidentally override the displayed page language.
+            if ( ! preg_match( '/(\?|\&)(tag|cat)=/', $link ) ) {
+                $link = remove_query_arg( 'language', $link );
+            }
+        }
+
+        return $link;
     }
 
     function callback_get_post_link() {
@@ -253,14 +263,14 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         $tags = $gts_plugin->link_rewriter->original_tag;
         if( count(explode( ',', $tags ) ) > 1) {
             if( $gts_plugin->language ) {
-            return add_query_arg( 'language', $gts_plugin->language );
-        }
+                return add_query_arg( 'language', $gts_plugin->language );
+            }
             else {
                 return remove_query_arg( 'language' );
             }
         }
 
-        return get_tag_link( get_query_var('tag_id' ) );
+        return get_tag_link( get_query_var( 'tag_id' ) );
     }
 
     function callback_get_category_link() {
@@ -272,12 +282,12 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         $cat = $gts_plugin->link_rewriter->original_category_id;
         if( count(explode( ',', $cat ) ) > 1) {
             if( $gts_plugin->language ) {
-            return add_query_arg( 'language', $gts_plugin->language );
-        }
+                return add_query_arg( 'language', $gts_plugin->language );
+            }
             else {
                 return remove_query_arg( 'language' );
+            }
         }
-    }
 
 
         $cat = get_term_by( 'slug', get_query_var( 'category_name' ), 'category' );

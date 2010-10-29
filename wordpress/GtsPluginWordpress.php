@@ -76,19 +76,6 @@ class GtsPluginWordpress extends GtsPlugin {
             $this->theme_language = $_GET['language'];
         }
 
-        if( !$this->config->indexes_on_translated_slugs ) {
-
-            foreach ( array( 'gts_translated_posts', 'gts_translated_terms' ) as $table_name ) {
-                $table_name = $wpdb->prefix . $table_name;
-                $column_name = preg_match( '/_posts$/', $table_name ) ? 'post_slug(255)' : 'slug';
-                $wpdb->query( "CREATE INDEX ${table_name}_slug_lang ON $table_name($column_name,language)");
-            }
-
-            $this->config->indexes_on_translated_slugs = true;
-            $this->save_config();
-
-            $this->link_rewriter->flush_rewrite_rules();
-        }
     }
 
 
@@ -97,9 +84,17 @@ class GtsPluginWordpress extends GtsPlugin {
             $this->language = $wp_query->query_vars[GtsLinkRewriter::$LANG_PARAM];
         }
     }
-    
+
 
     function activate_plugin() {
+
+        try {
+            $this->notify_plugin_activation();
+        }
+        catch(Exception $e) {
+            $this->queue_info_notification( "Unable to reactivate plugin", "Unable to contact GTS API.  Please deactivate and try again later.");
+        }
+
         $this->link_rewriter->flush_rewrite_rules();
 
         if( !is_dir( GTS_THEME_DIR ) ) {
@@ -111,6 +106,15 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function deactivate_plugin() {
         $this->link_rewriter->flush_rewrite_rules();
+
+        try {
+            $this->notify_plugin_deactivation();
+        }
+        catch(Exception $e) {
+            if( GTS_DEBUG_MODE ) {
+                $this->queue_info_notification( "Unable to deactivate plugin", "Unable to contact GTS API.");
+            }
+        }
     }
 
 
@@ -119,6 +123,30 @@ class GtsPluginWordpress extends GtsPlugin {
         if( GTS_DEBUG_MODE || WP_UNINSTALL_PLUGIN ) {
 
             global $wpdb;
+
+            $config = get_option( GTS_OPTION_NAME );
+            $blog_id = $config[ 'blog_id' ];
+            $api_key = $config[ 'api_key' ];
+            $api_host = $config[ 'api_host' ];
+            $api_port = $config[ 'api_port' ];
+
+            if ( $blog_id && $api_key ) {
+
+                if( !$api_host ) {
+                    $api_host = GTS_DEFAULT_API_HOST;
+                    $api_port = GTS_DEFAULT_API_PORT;
+                }
+
+                try {
+                    $api_client = new com_gts_ApiClient( $api_host, $api_port, $blog_id, $api_key );
+                    $api_client->get_api_response( 'killBlog', '', true );
+                }
+                catch(Exception $e) {
+                    if( GTS_DEBUG_MODE ) {
+                        echo $e->getTraceAsString();
+                    }
+                }
+            }
 
             delete_option( GTS_OPTION_NAME );
             delete_option( GTS_THEME_OPTION_NAME );
@@ -133,7 +161,7 @@ class GtsPluginWordpress extends GtsPlugin {
         }
     }
 
-    
+
     function register_plugin_hooks() {
 
         register_activation_hook( __FILE__, array($this, 'activate_plugin') );
@@ -196,11 +224,13 @@ class GtsPluginWordpress extends GtsPlugin {
             global $wpdb;
 
             foreach ( GtsDbSchema::$gts_db_schema as $table ) {
-                $table = preg_replace( '/(create\s+table\s+)(\S+)/i', '\1' . $wpdb->prefix . '\2', $table, 1 );
+                $table = preg_replace( '/(create\s+table\s+)(\S+)/i', '${1}' . $wpdb->prefix . '${2}', $table, 1 );
                 $this->create_db_table( $table );
             }
 
             $this->config->plugin_version = GTS_PLUGIN_VERSION;
+            $this->save_config();
+            
             update_option( GTS_DB_INITIALIZED_OPTION_NAME, true );
         }
     }
@@ -250,17 +280,19 @@ class GtsPluginWordpress extends GtsPlugin {
 
 
     function register_actions() {
-        
+
         add_action( 'parse_request' , array($this, 'update_language_from_wp_query') );
 
         add_action( 'widgets_init', create_function('', 'return register_widget("GTS_LanguageSelectWidget");') );
-        
+
         add_action( 'the_posts' , array($this, 'substitute_translated_posts'), 1 );
 
         add_action( 'get_term', array($this, 'substitute_translated_term'), 1 );
         add_action( 'get_terms', array($this, 'substitute_translated_terms'), 1 );
 
         add_action( 'wp_get_object_terms', array($this, 'substitute_translated_terms'), 1 );
+
+        add_action( 'wp_head', array($this, 'add_link_rel_elements') );
 
 
         // only register our theme directories when we're not in admin view.  otherwise, it will
@@ -293,6 +325,46 @@ class GtsPluginWordpress extends GtsPlugin {
 
         add_filter( 'option_home', array( $this, 'replace_hostname_if_available' ), 1 );
         add_filter( 'option_siteurl', array( $this, 'replace_hostname_if_available' ), 1 );
+
+        add_filter( 'posts_join', array( $this, 'add_posts_join_criteria' ), 1 );
+    }
+
+
+    function add_link_rel_elements() {
+
+        // todo - hack alert... probably need to factor out the get_current_url_for_language functionality.
+        $widget = new GTS_LanguageSelectWidget();
+
+        $all_langs = array();
+        array_push( $all_langs, $this->config->source_language );
+        foreach( $this->config->target_languages as $lang ) {
+            array_push( $all_langs, $lang );
+        }
+
+        $selected_lang = $this->language;
+        if( !$selected_lang ) {
+            $selected_lang = $this->config->source_language;
+        }
+        
+        foreach( $all_langs as $lang ) {
+            if( $lang != $selected_lang ) {
+                echo "<link rel=\"alternate\" hreflang=\"$lang\" href=\"" . $widget->get_current_url_for_language( com_gts_Language::get_by_code( $lang) ) . "\" />\n";
+            }
+        }
+    }
+
+
+    function add_posts_join_criteria( $join ) {
+        
+        if( $this->language ) {
+
+            global $wpdb;
+            $wp_table = $wpdb->prefix . "posts";
+            $tp_table = $wpdb->prefix . 'gts_translated_posts';
+            return "$join INNER JOIN $tp_table ON ($tp_table.local_id = $wp_table.id AND $tp_table.language = '". $this->language. "')";
+        }
+
+        return $join;
     }
 
 
@@ -320,7 +392,7 @@ class GtsPluginWordpress extends GtsPlugin {
                 }
             }
         }
-        
+
         return $url;
     }
 
@@ -435,9 +507,9 @@ class GtsPluginWordpress extends GtsPlugin {
     function get_translated_blog_post_metadata( $lang_code ) {
         return $this->wpdb->get_results(
             'SELECT id, local_id, foreign_id, post_title, post_slug, language, modified_time ' .
-            'FROM ' . $this->wpdb->prefix . 'gts_translated_posts ' .
-            'WHERE language = \'' . $lang_code . '\' ' .
-            'ORDER BY modified_time DESC'
+                    'FROM ' . $this->wpdb->prefix . 'gts_translated_posts ' .
+                    'WHERE language = \'' . $lang_code . '\' ' .
+                    'ORDER BY modified_time DESC'
         );
     }
 
@@ -669,10 +741,10 @@ class GtsPluginWordpress extends GtsPlugin {
     function validate_theme_settings( $input ) {
 
         $ticked = 'on' == $input;
-        
+
         $this->config->use_translated_theme = $ticked;
         $this->save_config();
-        
+
         return $ticked;
     }
 
@@ -721,13 +793,13 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function send_wp_notification($heading, $text, $type) {
 
-        $html = "<div id=\"gts-warning-$heading\" class=\"" . ($type == "info" ? "updated" : "error") . " fade\">" 
+        $html = "<div id=\"gts-warning-$heading\" class=\"" . ($type == "info" ? "updated" : "error") . " fade\">"
                 . "<p><strong>" . __($heading) . "</strong>: " . __($text) . "</p></div>";
 
         add_action("admin_notices", create_function("", "echo '". preg_replace('/\'/', "\\'", $html) .  "\n';"));
     }
-    
-    
+
+
     function send_notifications( &$messages, $type ) {
 
         $count = 0;
@@ -781,7 +853,7 @@ class GtsPluginWordpress extends GtsPlugin {
 
         // making sure to use the theme_language and not the normal language due to wordpress wonkiness
         if($this->theme_language) {
-            
+
             $current = get_current_theme();
 
             // depending on whether the theme has a package, we have different replace conditions here.
@@ -803,7 +875,7 @@ class GtsPluginWordpress extends GtsPlugin {
 
 
     function add_autogenerated_theme_dir( $dirs ) {
-        return $dirs; 
+        return $dirs;
     }
 
 
@@ -895,7 +967,7 @@ class GtsPluginWordpress extends GtsPlugin {
     }
 
     function is_plugin_directory_writable() {
-        return is_writable( GTS_PLUGIN_DIR ); 
+        return is_writable( GTS_PLUGIN_DIR );
     }
 
     function is_plugin_theme_directory_writable() {
@@ -937,7 +1009,7 @@ if(!gtsenv_is_wp_loaded()) {
     // this will be the case when we're running from the IDE or unit tests.
     if( !gtsenv_is_wp_loaded() ) {
 
-       $gtsenv_filename = $gtsenv_include_dir . DIRECTORY_SEPARATOR . 'wp-load.php';
+        $gtsenv_filename = $gtsenv_include_dir . DIRECTORY_SEPARATOR . 'wp-load.php';
 
         if(@file_exists($gtsenv_filename)) {
             require_once $gtsenv_filename;
@@ -959,6 +1031,9 @@ if(!gtsenv_is_wp_loaded()) {
 define( 'GTS_PLUGIN_NAME', 'gts-translation' );
 define( 'GTS_PLUGIN_DIR', WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . GTS_PLUGIN_NAME );
 define( 'GTS_PLUGIN_URL', trailingslashit( WP_PLUGIN_URL ) . basename( GTS_PLUGIN_DIR) );
+
+$plugin_data = get_file_data( GTS_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'Gts.php', array( 'Name' => 'Plugin Name', 'Version' => 'Version' ) );
+define( 'GTS_PLUGIN_VERSION' , $plugin_data['Version'] );
 
 define( 'GTS_THEME_DIR_NAME', 'translated_themes' );
 define( 'GTS_THEME_DIR', GTS_PLUGIN_DIR . DIRECTORY_SEPARATOR . GTS_THEME_DIR_NAME  );

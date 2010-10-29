@@ -36,11 +36,11 @@
 Plugin Name: GTS Translation
 Plugin URI: http://gts-translation.com/
 Description: The only translation plugin that provides human translation of your blog content using community translation (crowdsourcing). Use our community of professional translators or use your own internal community. Currently supports French, Italian, German, Spanish (FIGS). All content is cached on your Wordpress database and indexed by search engines.
-Version: 1.0.b9
+Version: 1.1
 Author: Steve van Loben Sels
 Author URI: http://gts-translation.com/
 
-Requires WP 2.8+, PHP 5.1.3+
+Requires WP 2.9+, PHP 5.1.3+
 
 */
 
@@ -60,10 +60,11 @@ require_once 'wordpress/GtsWidgets.php';
 // or filters in the wp runtime.  if they do, then that means we've got a design problem!
 //
 if ( $gts_plugin ) {
-    register_activation_hook( __FILE__ , array($gts_plugin, 'activate_plugin') );
-    register_deactivation_hook( __FILE__ , array($gts_plugin, 'deactivate_plugin') );
 
     $gts_plugin->register_plugin_hooks();
+
+    register_activation_hook( 'gts-translation/Gts.php' , array($gts_plugin, 'activate_plugin') );
+    register_deactivation_hook( 'gts-translation/Gts.php' , array($gts_plugin, 'deactivate_plugin') );
 }
 
 

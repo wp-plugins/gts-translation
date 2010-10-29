@@ -72,9 +72,9 @@ class GtsLinkRewriter {
                 add_filter( "update_option_$option", $flush_callback );
             }
         }
-        
+
         add_filter( 'query_vars', array( $this, 'add_query_params'), 1 );
-        
+
         add_filter( 'rewrite_rules_array', array( $this, 'append_rewrite_rules' ), 9999999999 );  // we want to be last last last!
 
         add_action( 'request' , array($this, 'fix_term_parameters'), 1 );
@@ -147,29 +147,29 @@ class GtsLinkRewriter {
         global $gts_plugin, $wp_rewrite;
         if( $id && $gts_plugin->language ) {
 
-             $permalink = $wp_rewrite->get_page_permastruct();
-             if( preg_match( '/%pagename%/', $permalink ) ) {
+            $permalink = $wp_rewrite->get_page_permastruct();
+            if( preg_match( '/%pagename%/', $permalink ) ) {
 
-                 $page = get_page( $id );
-                 $old_path = array();
-                 $translated_path = array();
+                $page = get_page( $id );
+                $old_path = array();
+                $translated_path = array();
 
-                 while( true ) {
-                     $tpage = $gts_plugin->get_translated_blog_post( $page->ID, $gts_plugin->language );
-                     array_unshift( $old_path, $page->post_name );
-                     array_unshift( $translated_path, $tpage ? $tpage->post_slug : $page->post_name );
+                while( true ) {
+                    $tpage = $gts_plugin->get_translated_blog_post( $page->ID, $gts_plugin->language );
+                    array_unshift( $old_path, $page->post_name );
+                    array_unshift( $translated_path, $tpage ? $tpage->post_slug : $page->post_name );
 
-                     if( $page->post_parent == 0 ) {
-                         break;
-                     }
+                    if( $page->post_parent == 0 ) {
+                        break;
+                    }
 
-                     $page = get_page( $page->post_parent );
-                 }
+                    $page = get_page( $page->post_parent );
+                }
 
-                 $link = str_replace( implode( '/', $old_path ), implode( '/', $translated_path), $link );
-             }
+                $link = str_replace( implode( '/', $old_path ), implode( '/', $translated_path), $link );
+            }
 
-             return $this->add_language_parameter( $link );
+            return $this->add_language_parameter( $link );
         }
 
         return $link;
@@ -215,6 +215,18 @@ class GtsLinkRewriter {
 
 
     function fix_term_parameters( $query_vars ) {
+
+        // HACK ALERT! : this is a special case to cover if the permalink is just the postname.  it becomes very
+        // difficult to tell the difference between pages and posts in that case b/c WP gets silly about matching.
+        // so, if we find an attachment, there's a decent chance that it's actually a nested page.  check for it!
+        global $wp_rewrite;
+        if( preg_match('/^\/%postname%(\/)?$/', $wp_rewrite->permalink_structure) && $query_vars['attachment'] ) {
+            global $gts_plugin;
+            if( $page = $gts_plugin->get_translated_blog_post_by_slug( $query_vars['attachment'], $query_vars['gts_lang'] ) ) {
+                $query_vars['pagename'] = $this->get_page_path( get_page( $page->local_id) );
+                $query_vars['attachment'] = null;
+            }
+        }
 
         // these are stashed so that the widget can later get at them without having been
         // overwritten in the query by other plugins (e.g. Simply Exclude)
@@ -287,12 +299,18 @@ class GtsLinkRewriter {
             if( $param_name == 'name' ) {
                 if( $translated_post = $gts_plugin->get_translated_blog_post_by_slug( $param_value, $language ) ) {
                     if( $original_post = get_post( $translated_post->local_id) ) {
-                        $query_vars[$param_name] = $original_post->post_name;
+                        if( $original_post->post_type == 'page' ) {
+                            $query_vars['name'] = null;
+                            $query_vars['pagename'] = $this->get_page_path( $original_post );
+                        }
+                        else {
+                            $query_vars[$param_name] = $original_post->post_name;
+                        }
                     }
                 }
             }
             else {
-                
+
                 // to catch the nested category case.
                 if( $param_name == 'category_name' ) {
                     $param_value = $this->original_category_name;
@@ -301,10 +319,19 @@ class GtsLinkRewriter {
                 // todo - need to distinguish between category and tag in case translations collide.
                 if( $translated_term = $gts_plugin->get_translated_blog_term_by_slug( $param_value, $language ) ) {
                     $query_vars[$param_name] = $this->get_original_slug( $translated_term->local_name );
-                    }
                 }
             }
         }
+    }
+
+    function get_page_path( $page ) {
+
+        if( $page->post_parent ) {
+            $prefix = $this->get_page_path( get_page( $page->post_parent ) );
+        }
+
+        return "$prefix/" . $page->post_name;
+    }
 
 
     function get_original_slug( $id ) {
@@ -320,7 +347,7 @@ class GtsLinkRewriter {
     }
 
     function append_rewrite_rules( $rules ) {
-        
+
         global $wp_rewrite;
 
         // only bother messing with this stuff if we have permalinks enabled.
@@ -342,8 +369,16 @@ class GtsLinkRewriter {
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_day_permastruct(), EP_DAY );
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_date_permastruct(), EP_DATE );
 
-            $newrules += $wp_rewrite->generate_rewrite_rules( "$lang_prefix/" . $wp_rewrite->comments_base, EP_COMMENTS, true, true, true, false );
+            // tags and categories also come before permalinks b/c they can otherwise be eaten by the attachments in the case
+            // that the permalink is *just* the postname.
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_tag_permastruct(), EP_TAGS );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_category_permastruct(), EP_CATEGORIES );
+
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_author_permastruct(), EP_AUTHORS );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_search_permastruct(), EP_SEARCH );
             
+            $newrules += $wp_rewrite->generate_rewrite_rules( "$lang_prefix/" . $wp_rewrite->comments_base, EP_COMMENTS, true, true, true, false );
+
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->permalink_structure, EP_PERMALINK );
 
             // this appears to be a bug in wordpress that we need to work around...  it's eating up our gts_lang variable in places relating
@@ -362,11 +397,6 @@ class GtsLinkRewriter {
                 }
             }
 
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_tag_permastruct(), EP_TAGS );
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_category_permastruct(), EP_CATEGORIES );
-
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_author_permastruct(), EP_AUTHORS );
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_search_permastruct(), EP_SEARCH );
 
             // todo - what is the extra permastruct
             // $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_extra_permastruct() );

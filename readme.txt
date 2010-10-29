@@ -1,8 +1,8 @@
 === Plugin Name ===
 Contributors: stevevls
 Tags: translate, translation, crowdsourcing
-Requires at least: 2.8.0
-Tested up to: 3.0
+Requires at least: 2.9.0
+Tested up to: 3.0.1
 Stable tag: trunk
 
 The only translation plugin that provides human translation of your blog content using community translation
@@ -113,11 +113,6 @@ We'll also keep a copy in our database in case the moderators or editors decide 
 Your WordPress theme is made up of a series of PHP files called templates.
 
 
-= Why is theme translation only available for WP 2.9+? =
-
-In WP 2.9, a new plugin hook was added that's instrumental for allowing our plugin to dynamically change templates.
-
-
 = My header link to the home page isn't localized properly.  What do I do? =
 
 If you are using theme translation, these links should be handled automatically.  Otherwise, you're probably using the `bloginfo('url')` or `home_url()` function.
@@ -164,6 +159,16 @@ Please see the Security tab.
 
 
 == Changelog ==
+
+= 1.1 =
+* First official release!
+* Resolve bug where WP table prefix starting with number caused table creation to fail.
+* Added remote API calls for activation, deactivation, and uninstall to keep plugin in sync with backend.
+* Improve schema migration as plugin version progresses.
+* Fix compatibility issues with permalinks consisting of only the post name.
+* Filter non-translated content from translated pages
+* add <link /> elements to HTML head to link to different language versions of pages.
+* Increase minimum WP version to 2.9
 
 = 1.0.b9 =
 * Resolve bugs with nested categories and other various bad permalinks as a result of the changes in 1.0.b8.

@@ -131,6 +131,31 @@ abstract class GtsPlugin {
     }
 
 
+    function notify_plugin_activation() {
+
+        // if we have these values, then our blog was previously active.  in that case,
+        // we need to call back home to get the blog back into the editing queue...
+        if( $this->config->blog_id && $this->config->api_key ) {
+
+            $request = new com_gts_Languages();
+            foreach ( $this->config->target_languages as $code ) {
+                array_push( $request->languages, com_gts_Language::get_by_code( $code ) );
+            }
+
+            $this->api_client->get_api_response( 'reactivateBlog', $request, true );
+        }
+    }
+
+    function notify_plugin_deactivation() {
+
+        // if we were previously configured, phone home to GTS to let them know not
+        // to keep working on this blog's content...
+        if( $this->config->blog_id && $this->config->api_key ) {
+            $this->api_client->get_api_response( 'deactivateBlog', '', true );
+        }
+    }
+
+
     function get_configured_languages() {
 
         // use the api client directly so that exceptions get propagated to the caller.

@@ -33,8 +33,6 @@
 require_once("lib/Language.php");
 
 
-define( 'GTS_PLUGIN_VERSION' , "1.0" );
-
 define( 'GTS_DEFAULT_API_HOST', in_array( $_SERVER['SERVER_NAME'], array( 'localhost', '127.0.0.1', 'sven.local') ) ? '127.0.0.1' : 'translate.gts-translation.com' );
 define( 'GTS_DEFAULT_API_PORT', GTS_DEFAULT_API_HOST == '127.0.0.1' ? 8080 : 80 );
 define( 'GTS_DEFAULT_SECURE_API_PORT', GTS_DEFAULT_API_HOST == '127.0.0.1' ? 8443 : 443 );
@@ -55,9 +53,8 @@ class GtsConfig {
     var $info_messages = array();
     var $error_messages = array();
 
-    var $plugin_version = GTS_PLUGIN_VERSION;
+    var $plugin_version; // = GTS_PLUGIN_VERSION;
     var $plugin_initialized;
-    var $indexes_on_translated_slugs;
 
     var $synchronous;
     var $use_translated_theme;
