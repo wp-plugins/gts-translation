@@ -3,7 +3,7 @@ Contributors: stevevls
 Tags: translate, translation, crowdsourcing
 Requires at least: 2.9.0
 Tested up to: 3.0.1
-Stable tag: trunk
+Stable tag: 1.1
 
 The only translation plugin that provides human translation of your blog content using community translation
 (crowdsourcing).
