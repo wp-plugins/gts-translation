@@ -82,6 +82,10 @@ class GtsPluginWordpress extends GtsPlugin {
     function update_language_from_wp_query( $wp_query ) {
         if(!$this->language) {
             $this->language = $wp_query->query_vars[GtsLinkRewriter::$LANG_PARAM];
+
+            // now that we've read the language variable, we unset it.  otherwise, it breaks
+            // the static home page feature b/c WP thinks the query isn't empty.
+            unset($wp_query->query_vars[GtsLinkRewriter::$LANG_PARAM]);
         }
     }
 
@@ -285,6 +289,7 @@ class GtsPluginWordpress extends GtsPlugin {
 
         add_action( 'widgets_init', create_function('', 'return register_widget("GTS_LanguageSelectWidget");') );
 
+        add_action( 'the_post' , array($this, 'substitute_translated_posts'), 1 );
         add_action( 'the_posts' , array($this, 'substitute_translated_posts'), 1 );
 
         add_action( 'get_term', array($this, 'substitute_translated_term'), 1 );

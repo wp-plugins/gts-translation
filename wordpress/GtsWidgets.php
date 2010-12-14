@@ -192,6 +192,9 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                 else if( is_category() && get_query_var( 'cat' ) ) {
                     $link = $gts_plugin->do_without_language( array( $this, 'callback_get_category_link' ) );
                 }
+                else if( is_tax() && get_query_var( 'taxonomy' ) && get_query_var( 'term' ) ) {
+                    $link = $gts_plugin->do_without_language( array( $this, 'callback_get_taxonomy_link' ) );
+                }
                 else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
                     $link = $gts_plugin->do_without_language( array( $this, 'callback_get_post_link' ) );
                 }
@@ -209,6 +212,9 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                 }
                 else if ( is_category() && get_query_var( 'cat' ) && ( $gts_plugin->link_rewriter->original_category_id || $gts_plugin->link_rewriter->original_category_name ) ) {
                     $link = $gts_plugin->do_with_language( array( $this, 'callback_get_category_link' ), $lang->code);
+                }
+                else if( is_tax() && get_query_var( 'taxonomy' ) && get_query_var( 'term' ) ) {
+                    $link = $gts_plugin->do_with_language( array( $this, 'callback_get_taxonomy_link' ), $lang->code);
                 }
                 else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
                     $link = $gts_plugin->do_with_language( array( $this, 'callback_get_post_link' ), $lang->code);
@@ -292,6 +298,11 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
         $cat = get_term_by( 'slug', get_query_var( 'category_name' ), 'category' );
         return get_category_link( $cat ? $cat->term_id : 0 );
+    }
+
+    function callback_get_taxonomy_link() {
+        $term = get_term_by( 'slug', get_query_var( 'term' ), get_query_var( 'taxonomy' ) );
+        return get_term_link( $term, get_query_Var( 'taxonomy' ) );
     }
 
     function callback_get_page_link() {

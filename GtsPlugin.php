@@ -400,20 +400,27 @@ abstract class GtsPlugin {
 
         if($this->language) {
 
-            foreach($posts as $post) {
-                $translated_post = $this->get_translated_blog_post($post->ID, $this->language);
+            $was_single = !is_array( $posts );
+            if( $was_single ) {
+                $posts = array( $posts );
+            }
 
-                if($translated_post) {
-                    $post->post_title = $translated_post->post_title;
-                    $post->post_name = $translated_post->post_slug;
-                    $post->post_excerpt = $translated_post->post_excerpt;
-                    $post->post_content = $translated_post->post_body;
-                    $post->gts_translated = true;
+            foreach($posts as $post) {
+                if( ! $post->gts_translated ) {
+                    $translated_post = $this->get_translated_blog_post($post->ID, $this->language);
+
+                    if($translated_post) {
+                        $post->post_title = $translated_post->post_title;
+                        $post->post_name = $translated_post->post_slug;
+                        $post->post_excerpt = $translated_post->post_excerpt;
+                        $post->post_content = $translated_post->post_body;
+                        $post->gts_translated = true;
+                    }
                 }
             }
         }
 
-        return $posts;
+        return $was_single ? $posts[0] : $posts;
     }
 
 

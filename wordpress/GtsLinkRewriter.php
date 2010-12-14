@@ -37,6 +37,7 @@ class GtsLinkRewriter {
 
 
     var $original_tag;
+    var $original_term;
     var $original_category_id;
     var $original_category_name;
 
@@ -59,6 +60,7 @@ class GtsLinkRewriter {
         'category_link',
         //'category_feed_link',  - this is a compound one...depends on the category_link
         'tag_link',
+        'term_link',
     );
 
 
@@ -231,6 +233,7 @@ class GtsLinkRewriter {
         // these are stashed so that the widget can later get at them without having been
         // overwritten in the query by other plugins (e.g. Simply Exclude)
         $this->original_tag = $query_vars['tag'];
+        $this->original_term = $query_vars['term'];
         $this->original_category_id = $query_vars['cat'];
         $this->original_category_name = $query_vars['category_name'];
 
@@ -244,6 +247,7 @@ class GtsLinkRewriter {
         $this->replace_with_slug( $query_vars, 'tag' );
         $this->replace_with_slug( $query_vars, 'name' );
         $this->replace_with_slug( $query_vars, 'category_name' );
+        $this->replace_with_slug( $query_vars, 'term' );
 
         if( $query_vars[GtsLinkRewriter::$LANG_PARAM] && $query_vars['pagename'] ) {
             $query_vars['pagename'] = $this->get_original_pagename( $query_vars['pagename'], $query_vars['gts_lang'] );
@@ -251,8 +255,10 @@ class GtsLinkRewriter {
 
         // this one is always set regardless of language.  we use it later to pick up pages because wordpress
         // rewrites the pagename param to be just the last portion, which can't easily be used for lookups.
-        $query_vars[GtsLinkRewriter::$PAGEPATH_PARAM] = $query_vars['pagename'];
-
+        if( $query_vars['pagename'] ) {
+            $query_vars[GtsLinkRewriter::$PAGEPATH_PARAM] = $query_vars['pagename'];
+        }
+        
         return $query_vars;
     }
 
@@ -374,9 +380,15 @@ class GtsLinkRewriter {
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_tag_permastruct(), EP_TAGS );
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_category_permastruct(), EP_CATEGORIES );
 
+            // this seems to be for custom taxonomies (i couldn't find anything else under WP that uses it...).  it also needs
+            // to come before the permalink b/c it will act more or less like a normal category/tag.
+            foreach( $wp_rewrite->extra_permastructs as $name => $permastruct ) {
+                $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $permastruct[0], EP_CATEGORIES );
+            }
+
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_author_permastruct(), EP_AUTHORS );
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_search_permastruct(), EP_SEARCH );
-            
+
             $newrules += $wp_rewrite->generate_rewrite_rules( "$lang_prefix/" . $wp_rewrite->comments_base, EP_COMMENTS, true, true, true, false );
 
             $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->permalink_structure, EP_PERMALINK );
@@ -396,10 +408,6 @@ class GtsLinkRewriter {
                     $newrules[$match] = $params;
                 }
             }
-
-
-            // todo - what is the extra permastruct
-            // $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_extra_permastruct() );
 
             // these two go last b/c it will otherwise match some of the above patterns.
             $newrules += $wp_rewrite->generate_rewrite_rule( $lang_prefix . $wp_rewrite->get_page_permastruct(), EP_PAGES );
