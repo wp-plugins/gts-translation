@@ -2,8 +2,8 @@
 Contributors: stevevls
 Tags: translate, translation, crowdsourcing
 Requires at least: 2.9.0
-Tested up to: 3.0.3
-Stable tag: 1.1.1
+Tested up to: 3.0.4
+Stable tag: 1.1.2
 
 The only translation plugin that provides human translation of your blog content using community translation
 (crowdsourcing).
@@ -159,6 +159,11 @@ Please see the Security tab.
 
 
 == Changelog ==
+
+= 1.1.2 =
+* Presentation changes to widget
+* Localization of home link with options filter on home and siteurl
+* Bugfix for 404 on pages with language specific hostname.
 
 = 1.1.1 =
 * Support for custom taxonomies.

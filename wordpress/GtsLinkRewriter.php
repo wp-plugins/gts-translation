@@ -81,6 +81,11 @@ class GtsLinkRewriter {
 
         add_action( 'request' , array($this, 'fix_term_parameters'), 1 );
 
+        // these work together with the filters in GtsPluginWordpress to change the hostname.
+        // todo : should look at unifying them!
+        add_filter( 'option_home', array($this, 'add_language_to_home'), 1);
+        add_filter( 'option_siteurl', array($this, 'add_language_to_home'), 1);
+
         add_filter( 'post_link', array($this, 'rewrite_post_link'), 1, 2 );
         add_filter( 'page_link', array($this, 'rewrite_page_link'), 1, 2 );
 
@@ -89,6 +94,16 @@ class GtsLinkRewriter {
         }
     }
 
+
+    function add_language_to_home( $link ) {
+
+        global $gts_plugin, $wp_rewrite;
+        if( $gts_plugin->language && $wp_rewrite->permalink_structure ) {
+            $link = untrailingslashit($link) . '/language/' . $gts_plugin->language;
+        }
+
+        return $link;
+    }
 
     function add_language_parameter( $link ) {
 
@@ -206,9 +221,16 @@ class GtsLinkRewriter {
 
         global $wp_rewrite;
 
-        $home = get_option('home');
+        if ( $wp_rewrite->permalink_structure ) {
 
-        if( $wp_rewrite->permalink_structure ) {
+            // this is a special case...  we need to make sure that language doesn't get double-set.  it should be bubbling up
+            // via the option_home filter, but this check is a failsafe to ensure it's always there.  if we find that it's
+            // missing for whatever reason, we'll just add it below.  otherwise return the link as-is
+            if ( $name == 'language' && strpos( $link, "/$name/$value" ) !== false ) {
+                return $link;
+            }
+
+            $home = get_option('home');
             return substr( $link, 0, strlen($home) ) . ($include_name_in_permalink ? "/$name" : '') . "/$value" . substr( $link, strlen($home) );
         }
 
@@ -217,6 +239,14 @@ class GtsLinkRewriter {
 
 
     function fix_term_parameters( $query_vars ) {
+
+        // this is a bizarre case, but when using virtual hosts, the query parameter for lang isn't set.
+        // i tried tracking down why it wasn't getting set to no avail, so the easiest thing to do is just
+        // insert the language right here.
+        global $gts_plugin;
+        if( $gts_plugin->language && !$query_vars[GtsLinkRewriter::$LANG_PARAM] ) {
+            $query_vars[GtsLinkRewriter::$LANG_PARAM] = $gts_plugin->language;
+        }
 
         // HACK ALERT! : this is a special case to cover if the permalink is just the postname.  it becomes very
         // difficult to tell the difference between pages and posts in that case b/c WP gets silly about matching.

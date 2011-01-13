@@ -33,19 +33,19 @@
 class GTS_LanguageSelectWidget extends WP_Widget {
 
     protected static $TITLES = array (
-        'en' => 'Also available in',
-        'de' => 'Auch verfügbar in',
-        'es' => 'También disponible en',
-        'fr' => 'En outre disponible dans',
-        'it' => 'Inoltre  disponibile  in',
+        'en' => 'Translate to',
+        'de' => 'Übersetzen Sie zum',
+        'es' => 'Traducir al',
+        'fr' => 'Traduire en',
+        'it' => 'Traduci in',
     );
 
     protected static $POWERED_BY = array (
-        'en' => 'Powered by',
-        'de' => 'Übersetzt durch',
-        'es' => 'Traducido por',
-        'fr' => 'Traduit par',
-        'it' => 'Tradotto da',
+        'en' => 'Website Translation by',
+        'de' => 'Website-Übersetzung von',
+        'es' => 'Sitio web traducido por',
+        'fr' => 'Site traduit par',
+        'it' => 'Sito internet tradotto da',
     );
 
     protected static $SELECT_LANGUAGE = array (
@@ -100,6 +100,9 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
 
     function output_widget_html($curr_lang, $title, $languages_with_links, $before_title = "", $after_title = "") {
+
+        global $gts_plugin;
+
         ?>
 
         <div class="gtsLanguageSelector">
@@ -137,8 +140,11 @@ class GTS_LanguageSelectWidget extends WP_Widget {
             </select>
 
             <p style="vertical-align: middle; margin-top:3px">
-                <span><?php echo GTS_LanguageSelectWidget::$POWERED_BY[$curr_lang]; ?>
-                    <a href="http://www.gts-translation.com/" target="_blank"><img src="<?php echo GTS_PLUGIN_URL ?>/wordpress/images/logo_trans_sm.png" alt="GTS Translation" title="GTS Translation"/></a>
+                <span>
+                    <?php if ( !$gts_plugin->language ) { ?><a href="http://www.gts-translation.com/" target="_blank"><?php } ?>
+                    <?php echo GTS_LanguageSelectWidget::$POWERED_BY[$curr_lang]; ?>
+                    <?php if ( !$gts_plugin->language ) echo "</a>" ?>
+                    <img src="<?php echo GTS_PLUGIN_URL ?>/wordpress/images/logo_trans_sm.png" alt="GTS Translation" title="GTS Translation"/>
                 </span>
             </p>
         </div>
@@ -159,8 +165,8 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         global $gts_plugin, $wp_rewrite;
         $is_source = $lang->code == $gts_plugin->config->source_language;
 
-        // this little ditty makes sure we get appropriate hostname replacement...
-        $home = trailingslashit( $gts_plugin->do_with_language( array( $this, 'callback_get_home' ), $is_source ? null : $lang->code ) );
+        // this picks up the raw home path...we'll append languages as needed later.
+        $home = trailingslashit( $gts_plugin->do_without_language( array( $this, 'callback_get_home' ) ) );
 
         // this is the easy case...  no permalinks.  then we just have to toggle the language
         // parameter and we can call it a day.
