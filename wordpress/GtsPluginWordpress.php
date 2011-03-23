@@ -313,7 +313,8 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function register_filters() {
 
-        add_filter( 'locale', array($this, 'get_translation_locale'), 1 );
+        add_filter( 'locale', array($this, 'get_translation_locale'), 9999999999 );  // important that this is called *LAST*
+        add_filter( 'load_textdomain_mofile', array($this, 'rewrite_mofile_path'), 9999999999, 2 );  // this one too!
 
         add_filter( 'the_title', array($this, 'get_translated_title'), 1, 2 );
         add_filter( 'page_title', array($this, 'get_translated_title'), 1, 2 );
@@ -324,9 +325,6 @@ class GtsPluginWordpress extends GtsPlugin {
         add_filter( 'stylesheet', array($this, 'substitute_translated_stylesheet'), 1 );
 
         add_filter( 'get_pages', array($this, 'substitute_translated_posts'), 1 );
-
-        add_filter( 'the_date', array($this, 'localize_date_string' ), 1 );
-        add_filter( 'the_time', array($this, 'localize_date_string' ), 1 );
 
         add_filter( 'option_home', array( $this, 'replace_hostname_if_available' ), 1 );
         add_filter( 'option_siteurl', array( $this, 'replace_hostname_if_available' ), 1 );
@@ -342,8 +340,10 @@ class GtsPluginWordpress extends GtsPlugin {
 
         $all_langs = array();
         array_push( $all_langs, $this->config->source_language );
-        foreach( $this->config->target_languages as $lang ) {
-            array_push( $all_langs, $lang );
+        if( $this->config->target_languages ) {
+            foreach( $this->config->target_languages as $lang ) {
+                array_push( $all_langs, $lang );
+            }
         }
 
         $selected_lang = $this->language;
@@ -375,9 +375,28 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function get_translation_locale( $locale ) {
 
-        // todo - might also have to do something like this: //load_textdomain( 'default', WP_LANG_DIR . "/es_ES.mo" );
+        // locale is loaded before query parameters are parsed, so like with the theme,
+        // we have to detect the language prior to parsing params.
+        if ( $this->theme_language != $this->config->source_language ) {
+            return $this->theme_language . '_' . strtoupper( $this->theme_language );
+        }
 
         return $locale;
+    }
+
+    
+    function rewrite_mofile_path( $mofile, $domain ) {
+
+        if( preg_match('/\/([a-z]{2}_[A-Z]{2}\.mo)$/', $mofile, $matches ) ) {
+            global $wp_version;
+            $newfile = GTS_PLUGIN_DIR . "/wordpress/languages/$wp_version/$domain/$matches[1]";
+
+            if( file_exists( $newfile) ) {
+                return $newfile;
+            }
+        }
+
+        return $mofile;
     }
 
 
@@ -454,7 +473,15 @@ class GtsPluginWordpress extends GtsPlugin {
     }
 
     function get_blog_post_terms( $id ) {
-        return array_merge( wp_get_post_tags($id) , wp_get_post_categories($id, array( "fields" => "all" )) );
+
+        $terms = array();
+        foreach( get_taxonomies( array(), 'objects' ) as $taxonomy ) {
+            if ( in_array( 'post', $taxonomy->object_type ) ) {
+                $terms = array_merge( $terms, wp_get_post_terms( $id, $taxonomy->name, array( "fields" => "all" ) ) );
+            }
+        }
+
+        return $terms;
     }
 
     function get_blog_term( $id, $taxonomy ) {
@@ -520,7 +547,7 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function save_translated_blog_post( $translated_post ) {
 
-        $translated_post->slug = sanitize_title( $translated_post->slug );
+        $translated_post->slug = $this->sanitize_slug( $translated_post->slug, $translated_post->language );
 
         $columns = array(
             "foreign_id" => $this->get_attribute_value( $translated_post, 'id' ),
@@ -548,6 +575,20 @@ class GtsPluginWordpress extends GtsPlugin {
 
 
 
+    function sanitize_slug( $slug, $language ) {
+
+        $langObj = com_gts_Language::get_by_code( $language );
+        if( $langObj->latin ) {
+            $slug = sanitize_title( $slug );
+        }
+        else {
+            $slug = preg_replace( '/([[:punct:]]|[[:space:]])+/', '-', $slug );
+        }
+
+        return $slug;
+    }
+
+
     function get_translated_blog_term( $name, $language ) {
         return $this->wpdb->get_row(
             $this->wpdb->prepare(
@@ -568,7 +609,7 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function save_translated_blog_term( $translated_term ) {
 
-        $translated_term->slug = sanitize_title( $translated_term->slug );
+        $translated_term->slug = $this->sanitize_slug( $translated_term->slug, $translated_term->language );
 
         $columns = array(
             "foreign_id" => $this->get_attribute_value( $translated_term, 'id' ),
@@ -646,16 +687,6 @@ class GtsPluginWordpress extends GtsPlugin {
         return $bloginfo;
     }
 
-
-
-    function localize_date_string( $date ) {
-
-        if( $this->language ) {
-            $date = com_gts_Localization::replace_strings_in_date( $date, $this->config->source_language, $this->language );
-        }
-
-        return $date;
-    }
 
 
 
