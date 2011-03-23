@@ -109,6 +109,17 @@ Once the translated content is approved by a moderator, it is stored on your own
 We'll also keep a copy in our database in case the moderators or editors decide to make more changes.
 
 
+= When I switch my blog to Russian, all I see are question marks...what gives?
+This happens when the data is stored in MySQL with the wrong character encoding.  Execute the following (being sure to
+replace 'wp_' with the prefix specified in wp-config.php if you've changed that value):
+
+ALTER TABLE wp_gts_translated_options CONVERT TO CHARACTER SET 'utf8';
+ALTER TABLE wp_gts_translated_posts CONVERT TO CHARACTER SET 'utf8';
+ALTER TABLE wp_gts_translated_terms CONVERT TO CHARACTER SET 'utf8';
+
+Then get in touch with us so that we can help you reload your content.
+
+
 = What is theme translation? =
 Your WordPress theme is made up of a series of PHP files called templates.
 

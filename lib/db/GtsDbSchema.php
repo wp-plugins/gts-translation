@@ -45,7 +45,7 @@ class GtsDbSchema {
             created_time timestamp null default null,
             modified_time timestamp not null default now(),
             UNIQUE KEY (local_id, language)
-        )",
+        ) CHARACTER SET 'utf8'",
 
 
         "CREATE TABLE gts_translated_posts (
@@ -61,7 +61,7 @@ class GtsDbSchema {
             modified_time timestamp not null default now(),
             UNIQUE KEY (local_id, language),
             UNIQUE KEY (post_slug(255), language)
-        )",
+        ) CHARACTER SET 'utf8'",
 
 
         "CREATE TABLE gts_translated_terms (
@@ -76,7 +76,7 @@ class GtsDbSchema {
             modified_time timestamp not null default now(),
             UNIQUE KEY (local_name, language),
             UNIQUE KEY (slug, language)
-        )"
+        ) CHARACTER SET 'utf8'"
     );
     
 }
