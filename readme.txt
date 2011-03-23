@@ -23,7 +23,7 @@ onward, each time a new blog post is published it is automatically translated in
 choose to publish the translated content immediately (raw MT output), or to only publish the translated content after it
 has been approved by a moderator.
 
-Current release supports English to French, Italian, German and Spanish only.
+Current release supports English to French, Italian, German, Spanish, and Russian only.
 
 == Installation ==
 
@@ -73,7 +73,7 @@ No. Comments are are passed through as-is.
 
 = Which languages are supported? =
 * Input: English
-* Output: French, German, Italian, and Spanish
+* Output: French, German, Italian, Spanish, and Russian
 
 
 = What URLs will the translated blogs have? =
