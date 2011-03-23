@@ -48,13 +48,15 @@ class com_gts_Language {
     var $englishName;
     var $input;
     var $output;
+    var $latin;
 
-    function __construct( $code, $name, $englishName, $input, $output ) {
+    function __construct( $code, $name, $englishName, $input, $output, $latin ) {
         $this->code = $code;
         $this->name = $name;
         $this->englishName = $englishName;
         $this->input = $input;
         $this->output = $output;
+        $this->latin = $latin;
     }
 
     function __toString() {
@@ -91,12 +93,13 @@ class com_gts_Language {
 
 com_gts_Language::set_arrays(com_gts_Language::$ALL_LANGUAGES, com_gts_Language::$ALL_LANGUAGE_CODES, array(
 
-    new com_gts_Language("en", "English", "English", true, false),
+    new com_gts_Language("en", "English", "English", true, false, true),
 
-    new com_gts_Language("de", "Deutsch", "German", false, true),
-    new com_gts_Language("es", "Español", "Spanish", false, true),
-    new com_gts_Language("fr", "Français", "French", false, true),
-    new com_gts_Language("it", "Italiano", "Italian", false, true),
+    new com_gts_Language("de", "Deutsch", "German", false, true, true),
+    new com_gts_Language("es", "Español", "Spanish", false, true, true),
+    new com_gts_Language("fr", "Français", "French", false, true, true),
+    new com_gts_Language("it", "Italiano", "Italian", false, true, true),
+    new com_gts_Language("ru", "русский язык", "Russian", false, true, false),
 ));
 
 

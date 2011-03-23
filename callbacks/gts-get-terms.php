@@ -33,7 +33,15 @@
  
 require_once('../GtsPlugin.php');
 
-$terms = get_terms( array( 'category', 'post_tag' ), array( 'get' => 'all' ) );
+$taxonomies = array();
+foreach( get_taxonomies( array(), 'objects' ) as $taxonomy ) {
+    if ( in_array( 'post', $taxonomy->object_type ) ) {
+        array_push( $taxonomies, $taxonomy->name );
+    }
+}
+
+$terms = get_terms( $taxonomies, array( 'hide_empty' => true ) );
+
 $output_xml = new com_gts_Terms();
 foreach( $terms as $term ) {
 

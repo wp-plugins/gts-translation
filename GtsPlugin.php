@@ -192,7 +192,7 @@ abstract class GtsPlugin {
             return false;
         }
         
-        return strtolower( sha1( $auth['code'] . '~' . $auth['email'] . '~' . $this->do_without_language( array( $this, 'callback_get_home' ) ) ) );
+        return strtolower( sha1( $auth['code'] . '~' . strtolower($auth['email']) . '~' . $this->do_without_language( array( $this, 'callback_get_home' ) ) ) );
     }
 
     function callback_get_home() {  // todo - WP specific

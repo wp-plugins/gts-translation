@@ -50,7 +50,7 @@ if ( $_GET['initialize'] ) {
     $api_key = $_POST['apiKey'] ? $_POST['apiKey'] : $_GET['apiKey'];
     $languages = $_POST['languages'] ? $_POST['languages'] : $_GET['languages'];
 
-    if( $auth && $api_key && $languages ) {
+    if( $auth && $blog_id && $api_key && $languages ) {
 
         if( $gts_plugin->get_validation_code() === $auth ) {
 

@@ -38,6 +38,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         'es' => 'Traducir al',
         'fr' => 'Traduire en',
         'it' => 'Traduci in',
+        'ru' => 'Перевод на',
     );
 
     protected static $POWERED_BY = array (
@@ -46,6 +47,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         'es' => 'Sitio web traducido por',
         'fr' => 'Site traduit par',
         'it' => 'Sito internet tradotto da',
+        'ru' => 'Сайт переведен на',
     );
 
     protected static $SELECT_LANGUAGE = array (
@@ -54,6 +56,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         'es' => 'Elige Idioma',
         'fr' => 'Choisir Langue',
         'it' => 'Scegliere Lingua',
+        'ru' => 'Выберите язык',
     );
 
 
@@ -301,9 +304,8 @@ class GTS_LanguageSelectWidget extends WP_Widget {
             }
         }
 
-
-        $cat = get_term_by( 'slug', get_query_var( 'category_name' ), 'category' );
-        return get_category_link( $cat ? $cat->term_id : 0 );
+        $category = get_term_by( 'id', get_query_var( 'cat' ), 'category' );
+        return get_category_link( $category ? $category->term_id : 0 );
     }
 
     function callback_get_taxonomy_link() {

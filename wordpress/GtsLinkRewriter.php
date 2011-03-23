@@ -66,6 +66,8 @@ class GtsLinkRewriter {
 
     function register_plugin_hooks() {
 
+        global $wp_version;
+
         $flush_callback = array( $this, 'flush_rewrite_rules' );
 
         if(is_admin()) {
@@ -82,9 +84,12 @@ class GtsLinkRewriter {
         add_action( 'request' , array($this, 'fix_term_parameters'), 1 );
 
         // these work together with the filters in GtsPluginWordpress to change the hostname.
-        // todo : should look at unifying them!
-        add_filter( 'option_home', array($this, 'add_language_to_home'), 1);
-        add_filter( 'option_siteurl', array($this, 'add_language_to_home'), 1);
+        // they're used at different times and places in WP (though i think they're trying to fix that in
+        // some release...we still have to support 2.9+).  if we have version 3+, we'll use the siteurl filter
+        // so that we also get the path we're modifying so we can avoid rewriting admin links.  in 2.X, it looks
+        // like admin links go a different route, so we don't need to worry about them.  what a pain!
+        add_filter( 'option_home', array($this, 'add_language_to_home'), 1 );
+        add_filter( preg_match( '/^[12]\./', $wp_version ? 'option_' : '') + 'siteurl', array($this, 'add_language_to_home'), 2 );
 
         add_filter( 'post_link', array($this, 'rewrite_post_link'), 1, 2 );
         add_filter( 'page_link', array($this, 'rewrite_page_link'), 1, 2 );
@@ -95,10 +100,10 @@ class GtsLinkRewriter {
     }
 
 
-    function add_language_to_home( $link ) {
+    function add_language_to_home( $link, $path  ) {
 
         global $gts_plugin, $wp_rewrite;
-        if( $gts_plugin->language && $wp_rewrite->permalink_structure ) {
+        if( $gts_plugin->language && $wp_rewrite->permalink_structure && !preg_match( '/^\/?wp\-admin\//', $path) ) {
             $link = untrailingslashit($link) . '/language/' . $gts_plugin->language;
         }
 
@@ -243,15 +248,48 @@ class GtsLinkRewriter {
         // this is a bizarre case, but when using virtual hosts, the query parameter for lang isn't set.
         // i tried tracking down why it wasn't getting set to no avail, so the easiest thing to do is just
         // insert the language right here.
-        global $gts_plugin;
+        global $gts_plugin, $wp_rewrite;
         if( $gts_plugin->language && !$query_vars[GtsLinkRewriter::$LANG_PARAM] ) {
             $query_vars[GtsLinkRewriter::$LANG_PARAM] = $gts_plugin->language;
+        }
+
+        // WP 3.1 compatibility (and b/w compatibile)...  starting with WP3.1, a custom taxonomy query no longer sets
+        // the term query var.  but our code depends on it, so we'll just fake it.  this is a two
+        // part hack b/c later we'll have to take from the term and substitute it back into the taxonomy.
+        $taxonomies = get_taxonomies(array(), 'objects');
+        foreach( $taxonomies as $taxonomy ) {
+            if( !$taxonomy->_builtin && $query_vars[ $taxonomy->query_var ] && !$query_vars[ 'term' ] ) {
+                $query_vars[ 'term' ] = $query_vars[ $taxonomy->query_var ];
+            }
+        }
+
+        // this is for non-western character support in permalinks...  the values won't have been URL decoded
+        // yet b/c WP is expecting ASCII...  only mess with values that we know can contain UTF-8 chars.
+        if( $wp_rewrite->permalink_structure && $langCode = $query_vars[GtsLinkRewriter::$LANG_PARAM] ) {
+            $langObj = com_gts_Language::get_by_code( $langCode );
+            if( !$langObj->latin ) {
+                foreach ( array( 'tag', 'name', 'category_name', 'term', 'pagename' ) as $param_name ) {
+                    if ( $query_vars[ $param_name ] ) {
+
+                        // this value *should* be url encoded.  if it came in via get parameters, then
+                        // it will have been decoded already, but we also wouldn't enter into this loop!
+                        $encoded_val = $query_vars[ $param_name ];
+                        $query_vars[ $param_name ] = urldecode( $query_vars[ $param_name ] );
+
+                        // more permalink madness.  when WP goes through to attempt canonicalization, it looks at the
+                        // $_SERVER array for the REQUEST_URI.  it then "sanitizes" it, which for us means removing all
+                        // extended UTF-8 characters.  we'll need to fix that here or risk categories not working...
+                        if ( $encoded_val != $query_vars[ $param_name ] ) {
+                            $_SERVER['REQUEST_URI'] = str_replace( $encoded_val, $query_vars[ $param_name ], $_SERVER['REQUEST_URI'] );
+                        }
+                    }
+                }
+            }
         }
 
         // HACK ALERT! : this is a special case to cover if the permalink is just the postname.  it becomes very
         // difficult to tell the difference between pages and posts in that case b/c WP gets silly about matching.
         // so, if we find an attachment, there's a decent chance that it's actually a nested page.  check for it!
-        global $wp_rewrite;
         if( preg_match('/^\/%postname%(\/)?$/', $wp_rewrite->permalink_structure) && $query_vars['attachment'] ) {
             global $gts_plugin;
             if( $page = $gts_plugin->get_translated_blog_post_by_slug( $query_vars['attachment'], $query_vars['gts_lang'] ) ) {
@@ -288,7 +326,15 @@ class GtsLinkRewriter {
         if( $query_vars['pagename'] ) {
             $query_vars[GtsLinkRewriter::$PAGEPATH_PARAM] = $query_vars['pagename'];
         }
-        
+
+        // WP 3.1 custom taxonomy part 2...  now that we have the original term text, overwrite the custom
+        // taxonomy's query variable value with the source text.
+        foreach( $taxonomies as $taxonomy ) {
+            if( !$taxonomy->_builtin && $query_vars[ $taxonomy->query_var ] && $query_vars[ 'term' ] ) {
+                $query_vars[ $taxonomy->query_var ] = $query_vars[ 'term' ];
+            }
+        }
+
         return $query_vars;
     }
 
@@ -388,7 +434,7 @@ class GtsLinkRewriter {
 
         // only bother messing with this stuff if we have permalinks enabled.
         // otherwise, we just do like WP and return the empty rules array.
-        if($wp_rewrite->permalink_structure) {
+        if( $wp_rewrite->permalink_structure ) {
 
             $wp_rewrite->add_rewrite_tag('%'.GtsLinkRewriter::$LANG_PARAM.'%', '([a-z]{2})', GtsLinkRewriter::$LANG_PARAM . '=' );
 
@@ -398,30 +444,35 @@ class GtsLinkRewriter {
 
             $newrules = array();
 
+
+            // GENERAL NOTE : in WP < 3.1, most of the permastructs did not have a leading slash.  in 3.1, they started putting slashes on, and that of
+            // course broke all of the rewrite rules.  accordingly, to keep compatibility between the two version, we have to make sure that every
+            // permastruct makes sure that it has the slash...we'll do this using the leadingslashit method.
+
             // date rewrites come first because otherwise they get eaten by the permalink rewrite rule.  they
             // are ordered in order of least specific to most specific.
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_year_permastruct(), EP_YEAR );
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_month_permastruct(), EP_MONTH );
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_day_permastruct(), EP_DAY );
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_date_permastruct(), EP_DATE );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->get_year_permastruct() ), EP_YEAR );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->get_month_permastruct() ), EP_MONTH );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->get_day_permastruct() ), EP_DAY );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->get_date_permastruct() ), EP_DATE );
 
             // tags and categories also come before permalinks b/c they can otherwise be eaten by the attachments in the case
             // that the permalink is *just* the postname.
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_tag_permastruct(), EP_TAGS );
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_category_permastruct(), EP_CATEGORIES );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->get_tag_permastruct() ), EP_TAGS );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->get_category_permastruct() ), EP_CATEGORIES );
 
             // this seems to be for custom taxonomies (i couldn't find anything else under WP that uses it...).  it also needs
             // to come before the permalink b/c it will act more or less like a normal category/tag.
             foreach( $wp_rewrite->extra_permastructs as $name => $permastruct ) {
-                $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $permastruct[0], EP_CATEGORIES );
+                $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $permastruct[0] ), EP_CATEGORIES );
             }
 
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_author_permastruct(), EP_AUTHORS );
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->get_search_permastruct(), EP_SEARCH );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->get_author_permastruct() ), EP_AUTHORS );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->get_search_permastruct() ), EP_SEARCH );
 
-            $newrules += $wp_rewrite->generate_rewrite_rules( "$lang_prefix/" . $wp_rewrite->comments_base, EP_COMMENTS, true, true, true, false );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->comments_base ), EP_COMMENTS, true, true, true, false );
 
-            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $wp_rewrite->permalink_structure, EP_PERMALINK );
+            $newrules += $wp_rewrite->generate_rewrite_rules( $lang_prefix . $this->leadingslashit( $wp_rewrite->permalink_structure ), EP_PERMALINK );
 
             // this appears to be a bug in wordpress that we need to work around...  it's eating up our gts_lang variable in places relating
             // to attachments.  this hack seems to fix it, but only when we run it just after adding the permalink rules.  not sure why it has
@@ -440,13 +491,22 @@ class GtsLinkRewriter {
             }
 
             // these two go last b/c it will otherwise match some of the above patterns.
-            $newrules += $wp_rewrite->generate_rewrite_rule( $lang_prefix . $wp_rewrite->get_page_permastruct(), EP_PAGES );
+            $newrules += $wp_rewrite->generate_rewrite_rule( $lang_prefix . $this->leadingslashit( $wp_rewrite->get_page_permastruct() ), EP_PAGES );
             $newrules += $wp_rewrite->generate_rewrite_rule( $lang_prefix, EP_ROOT );
 
             return $newrules + $rules;
         }
 
         return $rules;
+    }
+
+    function leadingslashit( $str ) {
+
+        if( $str && strlen( $str ) && $str[0] != '/' ) {
+            $str = "/$str";
+        }
+
+        return $str;
     }
 
     function callback_reindex_match_array( $matches ) {
