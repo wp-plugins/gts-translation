@@ -100,7 +100,7 @@ class GtsLinkRewriter {
     }
 
 
-    function add_language_to_home( $link, $path  ) {
+    function add_language_to_home( $link, $path = "" ) {
 
         global $gts_plugin, $wp_rewrite;
         if( $gts_plugin->language && $wp_rewrite->permalink_structure && !preg_match( '/^\/?wp\-admin\//', $path) ) {

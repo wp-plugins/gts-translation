@@ -3,7 +3,7 @@ Contributors: stevevls
 Tags: translate, translation, crowdsourcing
 Requires at least: 2.9.0
 Tested up to: 3.1
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 
 The only translation plugin that provides human translation of your blog content using community translation
 (crowdsourcing).
@@ -23,7 +23,7 @@ onward, each time a new blog post is published it is automatically translated in
 choose to publish the translated content immediately (raw MT output), or to only publish the translated content after it
 has been approved by a moderator.
 
-Current release supports English to French, Italian, German, Spanish, and Russian only.
+Current release supports English to French, Italian, German, Spanish, and Russian.
 
 == Installation ==
 
@@ -110,7 +110,7 @@ We'll also keep a copy in our database in case the moderators or editors decide 
 
 
 = When I switch my blog to Russian, all I see are question marks...what gives?
-This happens when the data is stored in MySQL with the wrong character encoding.  Execute the following (being sure to
+This happens when the data is stored in MySQL with the wrong character encoding.  Execute the following SQL (being sure to
 replace 'wp_' with the prefix specified in wp-config.php if you've changed that value):
 
 ALTER TABLE wp_gts_translated_options CONVERT TO CHARACTER SET 'utf8';
@@ -170,6 +170,10 @@ Please see the Security tab.
 
 
 == Changelog ==
+
+= 1.1.4 =
+* Fixed possible PHP Warnings when calling add_language_to_home() function
+* Added explicit UTF-8 character set declaration to database table creation script.
 
 = 1.1.3 =
 * General support for non-latin languages
