@@ -1,7 +1,7 @@
 === Plugin Name ===
 Contributors: stevevls
 Tags: translate, translation, crowdsourcing
-Requires at least: 3.0
+Requires at least: 2.9
 Tested up to: 2.9
 Stable tag: 1.1.5
 
