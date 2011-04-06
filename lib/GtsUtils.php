@@ -93,6 +93,27 @@ class GtsUtils {
         return -1;
     }
 
+    static function list_directory( $dir, $return_hidden = false ) {
+
+        $dirhandle = opendir( $dir );
+        $filenames = array();
+
+        if( $dirhandle ) {
+
+            while( $entryName = readdir( $dirhandle ) ) {
+                if( !("." == $entryName || ".." == $entryName) && ($return_hidden || !preg_match( '/^\./', $entryName ) ) ) {
+                    array_push( $filenames, $entryName );
+                }
+            }
+
+            closedir( $dirhandle );
+
+            return $filenames;
+        }
+
+        return FALSE;
+    }
+
 
     static $alpha_upper_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     static $alpha_lower_chars = 'abcdefghijklmnopqrstuvwxyz';

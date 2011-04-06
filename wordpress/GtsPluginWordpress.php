@@ -109,7 +109,9 @@ class GtsPluginWordpress extends GtsPlugin {
     }
 
     function deactivate_plugin() {
+
         $this->link_rewriter->flush_rewrite_rules();
+        $this->unschedule_cron_jobs();
 
         try {
             $this->notify_plugin_deactivation();
@@ -236,7 +238,21 @@ class GtsPluginWordpress extends GtsPlugin {
             $this->save_config();
             
             update_option( GTS_DB_INITIALIZED_OPTION_NAME, true );
+
+
+            // HACK!  this changes this function more to an "onUpgrade" than just
+            // making sure the DB is current.
+            wp_schedule_single_event( time(), GTS_FETCH_MOFILES_CRONJOB );
         }
+    }
+
+
+    function get_cached_available_languages() {
+        return get_option( GTS_CACHED_LANGUAGES_OPTION_NAME );
+    }
+
+    function cache_available_languages( $languages ) {
+        update_option( GTS_CACHED_LANGUAGES_OPTION_NAME, $languages );
     }
 
 
@@ -308,6 +324,11 @@ class GtsPluginWordpress extends GtsPlugin {
         if( function_exists( 'register_theme_directory') && $this->config->use_translated_theme ) {
             register_theme_directory( GTS_THEME_DIR );
         }
+
+        // cronjobs...
+        add_action( GTS_FETCH_LANGUAGES_CRONJOB, array($this, 'fetch_and_cache_available_languages' ) );
+        add_action( GTS_FETCH_MOFILES_CRONJOB, array($this, 'fetch_and_cache_mofiles' ) );
+        add_action( 'wp', array( $this, 'schedule_cron_jobs' ) );
     }
 
 
@@ -333,6 +354,26 @@ class GtsPluginWordpress extends GtsPlugin {
     }
 
 
+
+    function schedule_cron_jobs() {
+
+        foreach( array( GTS_FETCH_LANGUAGES_CRONJOB, GTS_FETCH_MOFILES_CRONJOB ) as $cron ) {
+            if( !wp_next_scheduled( $cron ) ) {
+                wp_schedule_event( time(), 'daily', $cron );
+            }
+        }
+    }
+
+    function unschedule_cron_jobs() {
+
+        foreach( array( GTS_FETCH_LANGUAGES_CRONJOB, GTS_FETCH_MOFILES_CRONJOB ) as $cron ) {
+            if( $time = wp_next_scheduled( $cron ) ) {
+                wp_unschedule_event( $time, $cron );
+            }
+        }
+    }
+
+
     function add_link_rel_elements() {
 
         // todo - hack alert... probably need to factor out the get_current_url_for_language functionality.
@@ -350,7 +391,8 @@ class GtsPluginWordpress extends GtsPlugin {
         if( !$selected_lang ) {
             $selected_lang = $this->config->source_language;
         }
-        
+
+        echo "<!-- GTS Plugin Version " . GTS_PLUGIN_VERSION  . " -->\n";
         foreach( $all_langs as $lang ) {
             if( $lang != $selected_lang ) {
                 echo "<link rel=\"alternate\" hreflang=\"$lang\" href=\"" . $widget->get_current_url_for_language( com_gts_Language::get_by_code( $lang) ) . "\" />\n";
@@ -378,7 +420,7 @@ class GtsPluginWordpress extends GtsPlugin {
         // locale is loaded before query parameters are parsed, so like with the theme,
         // we have to detect the language prior to parsing params.
         if ( $this->theme_language != $this->config->source_language ) {
-            return $this->theme_language . '_' . strtoupper( $this->theme_language );
+            return com_gts_Language::get_by_code( $this->theme_language )->wordpressLocaleName;
         }
 
         return $locale;
@@ -387,16 +429,148 @@ class GtsPluginWordpress extends GtsPlugin {
     
     function rewrite_mofile_path( $mofile, $domain ) {
 
-        if( preg_match('/\/([a-z]{2}_[A-Z]{2}\.mo)$/', $mofile, $matches ) ) {
-            global $wp_version;
-            $newfile = GTS_PLUGIN_DIR . "/wordpress/languages/$wp_version/$domain/$matches[1]";
+        if( preg_match('/\/([a-z]{2}(_[A-Z]{2})?\.mo)$/', $mofile, $matches ) ) {
 
-            if( file_exists( $newfile) ) {
-                return $newfile;
+            $best_mofile = $this->get_best_mofile( $this->theme_language, $domain );
+            if( $best_mofile ) {
+                return $best_mofile;
             }
         }
 
         return $mofile;
+    }
+
+
+    function get_best_mofile( $language, $domain = 'default' ) {
+
+        global $wp_version;
+        $mofile = com_gts_Language::get_by_code( $language )->wordpressLocaleName . ".mo";
+
+        $mo_dir_base = GTS_I18N_DIR;
+        if( file_exists( $mo_dir_base ) && is_dir( $mo_dir_base ) ) {
+
+            $newfile = $mo_dir_base . "/$wp_version/$domain/$mofile";
+
+            // best case : we have the version file!
+            if( file_exists( $newfile ) ) {
+                return $newfile;
+            }
+
+            // next best : walk down the version folders until we find one...
+            $wp_versions = GtsUtils::list_directory( $mo_dir_base );
+            if( sizeof( $wp_versions ) > 0 ) {
+                rsort( $wp_versions );
+
+                foreach ( $wp_versions as $version ) {
+                    $newfile = $mo_dir_base . "/$version/$domain/$mofile";
+                    if( file_exists( $newfile ) ) {
+                        return $newfile;
+                    }
+                }
+            }
+        }
+
+        return FALSE;
+    }
+
+
+    function fetch_and_cache_mofiles() {
+
+        foreach( $this->config->target_languages as $language ) {
+
+            $this->download_mofile( $language );
+
+            global $wp_version;
+            if( preg_match( '/^2\./', $wp_version ) ) {
+                $this->download_mofile( $language, 'kubrick' );
+            }
+            else {
+                $this->download_mofile( $language, 'twentyten' );
+            }
+        }
+    }
+
+
+    function download_mofile( $language, $domain = "default" ) {
+
+        global $wp_version;
+        $locale_name = com_gts_Language::get_by_code( $language )->wordpressLocaleName;
+        $svn_url = "http://svn.automattic.com/wordpress-i18n/$locale_name";
+        $svn_messages_dir = "messages" . ( $domain != "default" ? "/$domain" : "");
+
+        if( file_exists( GTS_I18N_DIR . "/$wp_version/$domain/$locale_name.mo")) {
+            return TRUE;
+        }
+
+        $tags = @file_get_contents( "$svn_url/tags/" );
+        if( $tags ) {
+
+            if( preg_match_all( '/href="(\d+(\.\d+)+)\/?\"/', $tags,  $match_versions ) ) {
+
+                // we're only going to bother looking at 2.9+.  all translated locales really should
+                // have an file for at the very least 2.9.  if not, we can always fall back to trunk.
+                $versions = array();
+                foreach( $match_versions[1] as $version ) {
+                    if( preg_match( '/^[3-9]/', $version ) || preg_match( '/^2\.9/', $version ) ) {
+                        array_push( $versions, $version );
+                    }
+                }
+
+                rsort( $versions );
+
+                $i = 0;
+                $num_versions = sizeof( $versions );
+                global $wp_version;
+
+                while( $i < $num_versions && strcmp( $versions[$i], $wp_version ) > 0 ) {
+                    $i++;
+                }
+
+                // try going backward, then forward...  hopefully we get something!
+                $prioritized_versions = array_merge( array_slice( $versions, $i ), array_reverse( array_slice( $versions, 0, $i ) ) );
+
+                foreach ( $prioritized_versions as $version ) {
+                    if( $this->download_mofile_to_i18n_dir( "$svn_url/tags/$version/$svn_messages_dir/$locale_name.mo", $domain, $version, "$locale_name.mo" ) ) {
+                        return TRUE;
+                    }
+                }
+            }
+        }
+
+        return $this->download_mofile_to_i18n_dir( "$svn_url/trunk/$svn_messages_dir/$locale_name.mo", $domain, "0.0", "$locale_name.mo" );
+    }
+
+
+    function download_mofile_to_i18n_dir( $svn_url, $dirname, $version, $filename ) {
+
+        $i18n_base = GTS_I18N_DIR . "/$version/$dirname/";
+
+        $mo_stream = @fopen( $svn_url, 'r' );
+        if( !$mo_stream ) {
+            return FALSE;
+        }
+
+        if( ! file_exists( $i18n_base ) ) {
+            GtsUtils::mkdir_dash_p( $i18n_base );
+        }
+
+        $fh = @fopen( "$i18n_base/$filename", 'w' );
+        if ( !$fh ) {
+            fclose( $mo_stream );
+            throw new Exception("Unable to write .mo files!");
+        }
+
+        stream_copy_to_stream( $mo_stream, $fh );
+
+        fclose( $mo_stream );
+        fclose( $fh );
+
+        return TRUE;
+    }
+
+
+    function is_i18n_directory_writable() {
+        return $this->is_plugin_directory_writable() || ( is_dir( GTS_I18N_DIR ) && is_writable( GTS_I18N_DIR ) );
     }
 
 
@@ -465,6 +639,34 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function create_db_table( $sql ) {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+        // HACK ALERT!  this is b/c WP isn't handling index creation properly.  it's duplicating indexes,
+        // and that's running into mysql bugginess with text indices.  plus, it means that every time we
+        // do the upgrade, it's creating duplicate indexes, and that's just silly.  for now, we'll just
+        // drop all indexes...could probably be smarter in the future, but these tables are expected to
+        // be sufficiently small that it shouldn't be too much effort to just recreate the indexes.
+        if( preg_match('/create\s+table\s+(\S+)/i', $sql, $matches ) ) {
+            global $wpdb;
+
+            $indexes_to_drop = array();
+            $table_name = $matches[1];
+
+            foreach ( $wpdb->get_results( "SHOW INDEX FROM $table_name") as $row ) {
+                if( $row->Key_name != "PRIMARY" && !in_array( $row->Key_name, $indexes_to_drop ) ) {
+                    array_push( $indexes_to_drop , $row->Key_name );
+                }
+            }
+
+            if( sizeof( $indexes_to_drop ) > 0 ) {
+                $query = "ALTER TABLE $table_name ";
+                foreach ( $indexes_to_drop as $index ) {
+                    $query .= " DROP INDEX $index,";
+                }
+            }
+
+            $wpdb->query( substr( $query, 0, strlen( $query ) - 1 ) );
+        }
+
         dbDelta($sql);
     }
 
@@ -723,6 +925,9 @@ class GtsPluginWordpress extends GtsPlugin {
                 $input[GTS_SETTING_TARGET_LANGUAGES] = $this->save_configured_languages( $languages );
                 $this->link_rewriter->flush_rewrite_rules();
                 $rewrite_rules_flushed = true;
+
+                // whenever the languages change, make sure our .mo files are up to date!
+                wp_schedule_single_event( time(), GTS_FETCH_MOFILES_CRONJOB );
             }
             catch(Exception $e) {
                 $this->queue_info_notification( "Unable to set languages", "Unable to contact GTS API.  Will keep old values");
@@ -790,6 +995,7 @@ class GtsPluginWordpress extends GtsPlugin {
 
         add_submenu_page( GTS_MENU_NAME, 'GTS Theme Settings', 'Translate Theme', 'manage_options', GTS_MENU_NAME . '-theme', array($this, 'settings_theme_page') );
         add_submenu_page( GTS_MENU_NAME, 'GTS Manage Translated Posts', 'Manage Posts', 'manage_options', GTS_MENU_NAME . '-posts', array($this, 'settings_posts_page') );
+        add_submenu_page( GTS_MENU_NAME, 'GTS Localization Status', 'Localization Status', 'manage_options', GTS_MENU_NAME . '-localization', array($this, 'settings_localization_page') );
     }
 
     function settings_page() {
@@ -802,6 +1008,10 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function settings_posts_page() {
         $this->include_page_or_splash( 'translated-posts', true );
+    }
+
+    function settings_localization_page() {
+        $this->include_page_or_splash( 'localization', true );
     }
 
     function include_page_or_splash( $page, $not_available_yet = false ) {
@@ -1068,6 +1278,8 @@ define( 'GTS_PLUGIN_NAME', 'gts-translation' );
 define( 'GTS_PLUGIN_DIR', WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . GTS_PLUGIN_NAME );
 define( 'GTS_PLUGIN_URL', trailingslashit( WP_PLUGIN_URL ) . basename( GTS_PLUGIN_DIR) );
 
+define( 'GTS_I18N_DIR', GTS_PLUGIN_DIR . '/i18n/' );
+
 $plugin_data = get_file_data( GTS_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'Gts.php', array( 'Name' => 'Plugin Name', 'Version' => 'Version' ) );
 define( 'GTS_PLUGIN_VERSION' , $plugin_data['Version'] );
 
@@ -1078,6 +1290,7 @@ define( 'GTS_OPTION_NAME' , 'gts_plugin_config');
 define( 'GTS_THEME_OPTION_NAME' , 'gts_plugin_config_theme');
 define( 'GTS_AUTHORIZATION_OPTION_NAME', 'gts_plugin_authorization' );
 define( 'GTS_DB_INITIALIZED_OPTION_NAME' , 'gts_database_initialized');
+define( 'GTS_CACHED_LANGUAGES_OPTION_NAME', 'gts_cached_languages' );
 
 // names of menus and such for the wp-admin interface.
 define( 'GTS_MENU_NAME', 'gts-settings' );
@@ -1094,6 +1307,9 @@ define( 'GTS_SETTING_TARGET_LANGUAGES', 'target_languages' );
 define( 'GTS_SETTING_TARGET_HOSTS', 'target_hostnames' );
 define( 'GTS_SETTING_SYNCHRONOUS', 'synchronous' );
 define( 'GTS_SETTING_USE_THEME', 'use_translated_theme' );
+
+define( 'GTS_FETCH_LANGUAGES_CRONJOB', 'gts_cron_fetch_languages' );
+define( 'GTS_FETCH_MOFILES_CRONJOB', 'gts_cron_fetch_mofiles' );
 
 
 ?>

@@ -33,7 +33,6 @@
 require_once "GtsConfig.php";
 
 require_once "lib/Language.php";
-require_once "lib/Localization.php";
 require_once "lib/GtsUtils.php";
 
 require_once "lib/ApiClient.php";
@@ -126,6 +125,13 @@ abstract class GtsPlugin {
     abstract function ensure_db_current();
 
 
+
+    abstract function get_cached_available_languages();
+
+    abstract function cache_available_languages( $response );
+
+
+
     function construct_api_client() {
         $this->api_client = new com_gts_ApiClient( $this->config->api_host, $this->config->api_port, $this->config->blog_id, $this->config->api_key  );
     }
@@ -154,6 +160,76 @@ abstract class GtsPlugin {
             $this->api_client->get_api_response( 'deactivateBlog', '', true );
         }
     }
+
+
+    function load_available_languages() {
+
+        $languages = $this->get_cached_available_languages();
+
+        if( !$languages ) {
+
+            try {
+                $languages = $this->fetch_and_cache_available_languages();
+            }
+            catch(Exception $e) {
+                $this->send_error_notification("Unable to Load Languages", "We're currently unable to load the list of supported languages...please try again later.");
+                $languages = array();
+            }
+        }
+
+
+        // TODO - the language stuff should probably be factored into this class rather than have it outside.
+        // it made more sense to have it that way before the API was responsible for loading languages...
+        com_gts_Language::set_arrays(com_gts_Language::$ALL_LANGUAGES, com_gts_Language::$ALL_LANGUAGE_CODES, $languages );
+
+        com_gts_Language::set_arrays(
+            com_gts_Language::$INPUT_LANGUAGES,
+            com_gts_Language::$INPUT_LANGUAGE_CODES,
+            array_values(array_filter(com_gts_Language::$ALL_LANGUAGES, array('com_gts_Language', 'filter_lang_input')))
+        );
+
+        com_gts_Language::set_arrays(
+            com_gts_Language::$OUTPUT_LANGUAGES,
+            com_gts_Language::$OUTPUT_LANGUAGE_CODES,
+            array_values(array_filter(com_gts_Language::$ALL_LANGUAGES, array('com_gts_Language', 'filter_lang_output')))
+        );
+
+        return $languages;
+    }
+
+
+
+    function fetch_and_cache_available_languages() {
+
+        $response = $this->api_client->get_api_response( 'getAvailableLanguages', '', true );
+
+        $languages = array();
+        foreach ( $response->languages->language as $language_xml ) {
+
+            $localization_strings = array();
+            foreach( $language_xml->localizationStrings->localizationString as $localization_string ) {
+                $localization_strings[ (string) $localization_string->key ] = (string) $localization_string->value;
+            }
+
+            $languages[] = new com_gts_Language(
+                (string) $language_xml->code,
+                (string) $language_xml->name,
+                (string) $language_xml->englishName,
+                    $language_xml->input == "true",
+                    $language_xml->output == "true",
+                    $language_xml->latin == "true",
+                    $language_xml->recentlyAdded == "true",
+                (string) $language_xml->displayCountryCode,
+                (string) $language_xml->wordpressLocaleName,
+                $localization_strings
+            );
+        }
+
+        $this->cache_available_languages( $languages );
+
+        return $languages;
+    }
+
 
 
     function get_configured_languages() {
@@ -531,6 +607,7 @@ else {
 
 $gts_plugin->ensure_db_current();
 $gts_plugin->construct_api_client();
+$gts_plugin->load_available_languages();
 
 if(GTS_TEST) {
     echo "gts env successfully loaded...\n";

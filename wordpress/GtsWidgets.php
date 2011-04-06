@@ -32,33 +32,6 @@
 
 class GTS_LanguageSelectWidget extends WP_Widget {
 
-    protected static $TITLES = array (
-        'en' => 'Translate to',
-        'de' => 'Übersetzen Sie zum',
-        'es' => 'Traducir al',
-        'fr' => 'Traduire en',
-        'it' => 'Traduci in',
-        'ru' => 'Перевод на',
-    );
-
-    protected static $POWERED_BY = array (
-        'en' => 'Website Translation by',
-        'de' => 'Website-Übersetzung von',
-        'es' => 'Sitio web traducido por',
-        'fr' => 'Site traduit par',
-        'it' => 'Sito internet tradotto da',
-        'ru' => 'Сайт переведен на',
-    );
-
-    protected static $SELECT_LANGUAGE = array (
-        'en' => 'Select Language',
-        'de' => 'Wählen Sprache',
-        'es' => 'Elige Idioma',
-        'fr' => 'Choisir Langue',
-        'it' => 'Scegliere Lingua',
-        'ru' => 'Выберите язык',
-    );
-
 
     function __construct() {
         parent::__construct(false, 'Gts Language Selector', array (
@@ -81,7 +54,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
             $curr_lang = $gts_plugin->config->source_language;
         }
 
-        $title = apply_filters('widget_title', GTS_LanguageSelectWidget::$TITLES[$curr_lang]);
+        $title = apply_filters('widget_title', com_gts_Language::get_by_code( $curr_lang )->localizationStrings[ 'WidgetTranslateTo' ] );
 
         $languages_with_links = array();
         foreach($available_langs as $code) {
@@ -109,7 +82,6 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         ?>
 
         <div class="gtsLanguageSelector">
-            <!-- GTS Plugin Version <?php echo GTS_PLUGIN_VERSION ?> -->
 
         <?php if($title) {
             echo $before_title . $title . ":" . $after_title;
@@ -133,7 +105,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
             </script>
 
             <select onchange="sendToTranlsatedPage(this)">
-                <option><?php echo GTS_LanguageSelectWidget::$SELECT_LANGUAGE[$curr_lang]; ?>...</option>
+                <option><?php echo com_gts_Language::get_by_code( $curr_lang )->localizationStrings['WidgetSelectLanguage']; ?>...</option>
             <?php
             foreach( $languages_with_links as $lang_code => $link ) {
                 $lang = com_gts_Language::get_by_code( $lang_code );
@@ -145,7 +117,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
             <p style="vertical-align: middle; margin-top:3px">
                 <span>
                     <?php if ( !$gts_plugin->language ) { ?><a href="http://www.gts-translation.com/" target="_blank"><?php } ?>
-                    <?php echo GTS_LanguageSelectWidget::$POWERED_BY[$curr_lang]; ?>
+                    <?php echo com_gts_Language::get_by_code( $curr_lang )->localizationStrings['WidgetPoweredBy']; ?>
                     <?php if ( !$gts_plugin->language ) echo "</a>" ?>
                     <img src="<?php echo GTS_PLUGIN_URL ?>/wordpress/images/logo_trans_sm.png" alt="GTS Translation" title="GTS Translation"/>
                 </span>

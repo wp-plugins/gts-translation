@@ -49,18 +49,31 @@ class com_gts_Language {
     var $input;
     var $output;
     var $latin;
+    var $recentlyAdded;
+    var $displayCountryCode;
+    var $wordpressLocaleName;
 
-    function __construct( $code, $name, $englishName, $input, $output, $latin ) {
+    var $localizationStrings;
+
+    function __construct( $code, $name, $englishName, $input, $output, $latin, $recentlyAdded,  $displayCountryCode, $wordpressLocaleName, $localizationStrings ) {
         $this->code = $code;
         $this->name = $name;
         $this->englishName = $englishName;
         $this->input = $input;
         $this->output = $output;
         $this->latin = $latin;
+        $this->recentlyAdded = $recentlyAdded;
+        $this->displayCountryCode = $displayCountryCode;
+        $this->wordpressLocaleName = $wordpressLocaleName;
+        $this->localizationStrings = $localizationStrings;
     }
 
     function __toString() {
         return get_class( $this ) . ":$this->code";
+    }
+
+    function get_type_name() {
+        return "language";
     }
 
     static function set_arrays( &$langs, &$codes, $input ) {
@@ -89,29 +102,3 @@ class com_gts_Language {
         return $lang->output;
     }
 }
-
-
-com_gts_Language::set_arrays(com_gts_Language::$ALL_LANGUAGES, com_gts_Language::$ALL_LANGUAGE_CODES, array(
-
-    new com_gts_Language("en", "English", "English", true, false, true),
-
-    new com_gts_Language("de", "Deutsch", "German", false, true, true),
-    new com_gts_Language("es", "Español", "Spanish", false, true, true),
-    new com_gts_Language("fr", "Français", "French", false, true, true),
-    new com_gts_Language("it", "Italiano", "Italian", false, true, true),
-    new com_gts_Language("ru", "русский язык", "Russian", false, true, false),
-));
-
-
-
-com_gts_Language::set_arrays(
-    com_gts_Language::$INPUT_LANGUAGES,
-    com_gts_Language::$INPUT_LANGUAGE_CODES,
-    array_values(array_filter(com_gts_Language::$ALL_LANGUAGES, array('com_gts_Language', 'filter_lang_input')))
-);
-
-com_gts_Language::set_arrays(
-    com_gts_Language::$OUTPUT_LANGUAGES,
-    com_gts_Language::$OUTPUT_LANGUAGE_CODES,
-    array_values(array_filter(com_gts_Language::$ALL_LANGUAGES, array('com_gts_Language', 'filter_lang_output')))
-);

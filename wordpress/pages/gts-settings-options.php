@@ -121,6 +121,14 @@ function format_api_key( $key, $chunk = 32 ) {
         </div>
     <?php } ?>
 
+    <?php if( !$gts_plugin->is_plugin_theme_directory_writable() ) { ?>
+        <div class="updated">
+            Your plugin directory isn't <a href="http://codex.wordpress.org/Changing_File_Permissions">writable</a>, so localization
+            files cannot be downloaded!<br/>
+        <code><?php echo is_dir(GTS_I18N_DIR) ? GTS_I18N_DIR : GTS_PLUGIN_DIR; ?></code>
+    </div>
+    <?php } ?>
+
     <script type="text/javascript">
         var $jq = jQuery.noConflict();        
         function enableCheckboxes(form) {
@@ -163,7 +171,7 @@ function format_api_key( $key, $chunk = 32 ) {
                         $lang_enabled = $set_languages && in_array($lang->code, $set_languages);
                         ?>
                         <tr>
-                            <td style="padding: .2em; padding-right: 1em;"><?php echo "$lang->englishName ($lang->name)" ?> : </td>
+                            <td style="padding: .2em; padding-right: 1em;"><?php echo ($lang->recentlyAdded ? ' <span style="font-weight: bold">NEW!</span>&nbsp;&nbsp;' : '') . "$lang->englishName ($lang->name)" ?> : </td>
                             <td style="padding: .2em;"><input type="checkbox" name="<?php echo sprintf('%s[%s]', GTS_OPTION_NAME, GTS_SETTING_TARGET_LANGUAGES)?>[<?php echo $lang->code?>]"<?php if($lang_enabled) echo " checked"?><?php if($using_cached_languages) echo ' disabled="disabled"'?> onchange="var elems = $jq('.virtualHost-<?php echo $lang->code ?>'); if(this.checked) elems.show(); else elems.hide();"/></td>
                             <td class="virtualHost-<?php echo $lang->code ?>" style="padding: .2em; padding-left: .3em;<?php if(!$lang_enabled) echo ' display:none;'?>">Virtual Host:</td>
                             <td class="virtualHost-<?php echo $lang->code ?>" style="padding: .2em;<?php if(!$lang_enabled) echo ' display:none;'?>"><input type="text" name="<?php echo sprintf('%s[%s]', GTS_OPTION_NAME, GTS_SETTING_TARGET_HOSTS)?>[<?php echo $lang->code?>]" value="<?php echo $options[GTS_SETTING_TARGET_HOSTS][$lang->code] ?>"/></td>

@@ -39,7 +39,7 @@ class GtsDbSchema {
             id bigint not null primary key auto_increment,
             local_id varchar(255) not null,
             foreign_id int not null,
-            language char(2) not null,
+            language char(16) not null,
             name varchar(255) not null,
             value text not null,
             created_time timestamp null default null,
@@ -52,7 +52,7 @@ class GtsDbSchema {
             id bigint not null primary key auto_increment,
             local_id bigint not null,
             foreign_id int not null,
-            language char(2) not null,
+            language char(16) not null,
             post_title text not null,
             post_excerpt text not null,
             post_body longtext not null,
@@ -60,7 +60,7 @@ class GtsDbSchema {
             created_time timestamp null default null,
             modified_time timestamp not null default now(),
             UNIQUE KEY (local_id, language),
-            UNIQUE KEY (post_slug(255), language)
+            INDEX (post_slug(255), language)
         ) CHARACTER SET 'utf8'",
 
 
@@ -68,7 +68,7 @@ class GtsDbSchema {
             id bigint not null primary key auto_increment,
             local_name varchar(255) not null,
             foreign_id int not null,
-            language char(2) not null,
+            language char(16) not null,
             name varchar(255) not null,
             slug varchar(255) not null,
             description text,

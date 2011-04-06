@@ -1,9 +1,9 @@
 === Plugin Name ===
 Contributors: stevevls
 Tags: translate, translation, crowdsourcing
-Requires at least: 2.9.0
-Tested up to: 3.1
-Stable tag: 1.1.4
+Requires at least: 3.0
+Tested up to: 2.9
+Stable tag: 1.1.5
 
 The only translation plugin that provides human translation of your blog content using community translation
 (crowdsourcing).
@@ -170,6 +170,15 @@ Please see the Security tab.
 
 
 == Changelog ==
+
+= 1.1.5 =
+* Added support for translation from English to Japanese and Portuguese.
+* Fetch supported languages from remote API rather than hard-coding them (allows auto-addition of languages going forward).
+* Removed packaged .mo files and implemented logic to automatically fetch them from WP's SVN repository.
+* Moved HTML Comment w/ plugin version from widget to <head> section with alt links.
+* Added logic to drop indexes when upgrading DB schema as workaround for WP bug.
+* Increased language code length in DB schema to support non-standard language codes (e.g. zh-CN, zh-TW).
+* WP 2.9.X : compatibility fix for custom taxonomies.
 
 = 1.1.4 =
 * Fixed possible PHP Warnings when calling add_language_to_home() function

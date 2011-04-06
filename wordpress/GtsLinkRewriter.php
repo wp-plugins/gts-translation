@@ -256,10 +256,14 @@ class GtsLinkRewriter {
         // WP 3.1 compatibility (and b/w compatibile)...  starting with WP3.1, a custom taxonomy query no longer sets
         // the term query var.  but our code depends on it, so we'll just fake it.  this is a two
         // part hack b/c later we'll have to take from the term and substitute it back into the taxonomy.
-        $taxonomies = get_taxonomies(array(), 'objects');
-        foreach( $taxonomies as $taxonomy ) {
-            if( !$taxonomy->_builtin && $query_vars[ $taxonomy->query_var ] && !$query_vars[ 'term' ] ) {
-                $query_vars[ 'term' ] = $query_vars[ $taxonomy->query_var ];
+        //
+        // of course, WP2.9.X doesn't have the get_taxonomies method, but that's okay b/c it works without this hack.
+        if( function_exists( 'get_taxonomies' ) ) {
+            $taxonomies = get_taxonomies(array(), 'objects');
+            foreach( $taxonomies as $taxonomy ) {
+                if( !$taxonomy->_builtin && $query_vars[ $taxonomy->query_var ] && !$query_vars[ 'term' ] ) {
+                    $query_vars[ 'term' ] = $query_vars[ $taxonomy->query_var ];
+                }
             }
         }
 
@@ -329,9 +333,11 @@ class GtsLinkRewriter {
 
         // WP 3.1 custom taxonomy part 2...  now that we have the original term text, overwrite the custom
         // taxonomy's query variable value with the source text.
-        foreach( $taxonomies as $taxonomy ) {
-            if( !$taxonomy->_builtin && $query_vars[ $taxonomy->query_var ] && $query_vars[ 'term' ] ) {
-                $query_vars[ $taxonomy->query_var ] = $query_vars[ 'term' ];
+        if( isset( $taxonomies ) ) {
+            foreach( $taxonomies as $taxonomy ) {
+                if( !$taxonomy->_builtin && $query_vars[ $taxonomy->query_var ] && $query_vars[ 'term' ] ) {
+                    $query_vars[ $taxonomy->query_var ] = $query_vars[ 'term' ];
+                }
             }
         }
 

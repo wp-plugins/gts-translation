@@ -113,17 +113,4 @@ abstract class com_gts_XMLWireType {
             }
         }
     }
-
-
-    function from_simplexml( $xml ) {
-
-        $reflector = new ReflectionClass(get_class($this));
-        foreach( $xml->children() as $child ) {
-
-            $property = $reflector->getProperty( $child->getName() );
-            if( isset($property) ) {
-
-            }
-        }
-    }
 }
