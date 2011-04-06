@@ -2,7 +2,7 @@
 Contributors: stevevls
 Tags: translate, translation, crowdsourcing
 Requires at least: 2.9
-Tested up to: 2.9
+Tested up to: 3.1.1
 Stable tag: 1.1.5
 
 The only translation plugin that provides human translation of your blog content using community translation
