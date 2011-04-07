@@ -35,7 +35,7 @@
 
 Plugin Name: GTS Translation
 Plugin URI: http://gts-translation.com/
-Description: The only translation plugin that provides human translation of your blog content using community translation (crowdsourcing). Use our community of professional translators or use your own internal community. Currently supports French, Italian, German, Spanish (FIGS). All content is cached on your Wordpress database and indexed by search engines.
+Description: The only translation plugin that provides human translation of your blog content using community translation (crowdsourcing). Use our community of professional translators or use your own internal community. Currently translates from English to French, Italian, German, Spanish, Portuguese, Japanese, and Russian with more to come. All content is cached on your Wordpress database and indexed by search engines.
 Version: 1.1.5
 Author: Steve van Loben Sels
 Author URI: http://gts-translation.com/
