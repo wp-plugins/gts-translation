@@ -495,14 +495,19 @@ class GtsPluginWordpress extends GtsPlugin {
 
         global $wp_version;
         $locale_name = com_gts_Language::get_by_code( $language )->wordpressLocaleName;
-        $svn_url = "http://svn.automattic.com/wordpress-i18n/$locale_name";
+
+        $svn_host = 'svn.automattic.com';
+        $svn_url = "/wordpress-i18n/$locale_name";
         $svn_messages_dir = "messages" . ( $domain != "default" ? "/$domain" : "");
 
         if( file_exists( GTS_I18N_DIR . "/$wp_version/$domain/$locale_name.mo")) {
             return TRUE;
         }
 
-        $tags = @file_get_contents( "$svn_url/tags/" );
+        $tags_fp = $this->url_get_stream( $svn_host, 80, "$svn_url/tags/" );
+        $tags = @stream_get_contents( $tags_fp );
+        @fclose( $tags_fp );
+
         if( $tags ) {
 
             if( preg_match_all( '/href="(\d+(\.\d+)+)\/?\"/', $tags,  $match_versions ) ) {
@@ -530,22 +535,22 @@ class GtsPluginWordpress extends GtsPlugin {
                 $prioritized_versions = array_merge( array_slice( $versions, $i ), array_reverse( array_slice( $versions, 0, $i ) ) );
 
                 foreach ( $prioritized_versions as $version ) {
-                    if( $this->download_mofile_to_i18n_dir( "$svn_url/tags/$version/$svn_messages_dir/$locale_name.mo", $domain, $version, "$locale_name.mo" ) ) {
+                    if( $this->download_mofile_to_i18n_dir( $svn_host, "$svn_url/tags/$version/$svn_messages_dir/$locale_name.mo", $domain, $version, "$locale_name.mo" ) ) {
                         return TRUE;
                     }
                 }
             }
         }
 
-        return $this->download_mofile_to_i18n_dir( "$svn_url/trunk/$svn_messages_dir/$locale_name.mo", $domain, "0.0", "$locale_name.mo" );
+        return $this->download_mofile_to_i18n_dir( $svn_host, "$svn_url/trunk/$svn_messages_dir/$locale_name.mo", $domain, "0.0", "$locale_name.mo" );
     }
 
 
-    function download_mofile_to_i18n_dir( $svn_url, $dirname, $version, $filename ) {
+    function download_mofile_to_i18n_dir( $svn_host, $svn_url, $dirname, $version, $filename ) {
 
-        $i18n_base = GTS_I18N_DIR . "/$version/$dirname/";
+        $i18n_base = GTS_I18N_DIR . "/$version/$dirname";
 
-        $mo_stream = @fopen( $svn_url, 'r' );
+        $mo_stream = $this->url_get_stream( $svn_host, 80, $svn_url );
         if( !$mo_stream ) {
             return FALSE;
         }
@@ -566,6 +571,30 @@ class GtsPluginWordpress extends GtsPlugin {
         fclose( $fh );
 
         return TRUE;
+    }
+
+
+    // this is a workaround to deal with hosts where file_get_contents doesn't work for URLs
+    // due to security constraints...
+    function url_get_stream( $host, $port, $url ) {
+
+        $fp = @fsockopen( $host, $port );
+
+        if( $fp ) {
+            @fwrite( $fp, "GET $url HTTP/1.1\r\n" );
+            @fwrite( $fp, "Host: $host\r\n" );
+            @fwrite( $fp, "\r\n" );
+
+            // in our ghetto wire impl, we'll ignore headers.  when we come across
+            // the first blank \r\n, we'll return the result.
+            while ( $str = @fgets( $fp, 4096) ) {
+                if ( $str == "\r\n" ) {
+                    return $fp;
+                }
+            }
+        }
+
+        return $fp;
     }
 
 
@@ -1278,7 +1307,7 @@ define( 'GTS_PLUGIN_NAME', 'gts-translation' );
 define( 'GTS_PLUGIN_DIR', WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . GTS_PLUGIN_NAME );
 define( 'GTS_PLUGIN_URL', trailingslashit( WP_PLUGIN_URL ) . basename( GTS_PLUGIN_DIR) );
 
-define( 'GTS_I18N_DIR', GTS_PLUGIN_DIR . '/i18n/' );
+define( 'GTS_I18N_DIR', GTS_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'i18n' );
 
 $plugin_data = get_file_data( GTS_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'Gts.php', array( 'Name' => 'Plugin Name', 'Version' => 'Version' ) );
 define( 'GTS_PLUGIN_VERSION' , $plugin_data['Version'] );
