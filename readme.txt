@@ -23,7 +23,8 @@ onward, each time a new blog post is published it is automatically translated in
 choose to publish the translated content immediately (raw MT output), or to only publish the translated content after it
 has been approved by a moderator.
 
-Current release supports English to French, Italian, German, Spanish, and Russian.
+Current release supports translating from English to French, Italian, German, Spanish, Portuguese, Japanese and Russian.
+We're actively working to add more languages!
 
 == Installation ==
 
@@ -73,7 +74,7 @@ No. Comments are are passed through as-is.
 
 = Which languages are supported? =
 * Input: English
-* Output: French, German, Italian, Spanish, and Russian
+* Output: French, German, Italian, Spanish, Portuguese, Japanese, and Russian
 
 
 = What URLs will the translated blogs have? =
@@ -278,5 +279,5 @@ Other measures we take to secure data coming back to your blog include using a w
 to use the hook for posting translated content and limiting the size of the post to ~250KB so that, even if all other measures
 fail, an attacker can't eat up all the memory on your machine.
 
-We have dedicated lots of thought to locking down this system, and we are very confident in the security of this system.
-After reading this, we hope you will be too.
+We have dedicated lots of thought to locking down this system, and we are very confident that it's secure.
+After reading this, we hope you will be too!
