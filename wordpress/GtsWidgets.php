@@ -91,7 +91,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                 var com_gts_languageLookup = {
                     <?php
                     foreach ( $languages_with_links as $lang => $link ) {
-                        echo "$lang : '$link',\n";
+                        echo "\"$lang\" : '$link',\n";
                     }
                     ?>
                 };
@@ -165,7 +165,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
             if( $is_source ) {
 
-                $interesting_part = preg_replace( '/^language\/[a-z]{2}\/?/', '', $interesting_part);
+                $interesting_part = preg_replace( '/^language\/' . GtsPluginWordpress::$LANGUAGE_CODE_REGEX . '\/?/', '', $interesting_part);
 
                 if( is_tag() && get_query_var( 'tag' ) ) {
                     $link = $gts_plugin->do_without_language( array( $this, 'callback_get_tag_link' ) );
@@ -203,7 +203,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                 else if( is_page() ) {
                     $link = $gts_plugin->do_with_language( array( $this, 'callback_get_page_link' ), $lang->code);
                 }
-                else if(!preg_match( '/^(language\/)([a-z]{2})(\/.*)?$/', $interesting_part, $matches ) ) {
+                else if(!preg_match( '/^(language\/)' . GtsPluginWordpress::$LANGUAGE_CODE_REGEX . '(\/.*)?$/', $interesting_part, $matches ) ) {
                     $link = $home . 'language/' . $lang->code . '/' . $interesting_part;
                 }
                 else {

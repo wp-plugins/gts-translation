@@ -35,6 +35,11 @@ require_once("GtsLinkRewriter.php");
 
 class GtsPluginWordpress extends GtsPlugin {
 
+    // matches standard 2 character ISO codes or the semi-formal
+    // zh-XXX chinese language codes.  optional group is non-capturing
+    // so that this doesn't wreak havoc with other regexs it may be
+    // embedded within.
+    static $LANGUAGE_CODE_REGEX = "[a-z]{2}(?:\\-[A-Z]{3})?";
 
     static $TRANSLATE_OPTIONS = array(
         'blogname',
@@ -65,7 +70,7 @@ class GtsPluginWordpress extends GtsPlugin {
         // note that we use get_option b/c wp_rewrite hasn't initialized yet, and we won't
         // be able to switch off values in there.
         if( get_option( 'permalink_structure') ) {
-            if( preg_match('/\/language\/([a-z]{2})\//', $_SERVER['REQUEST_URI'], $matches)) {
+            if( preg_match('/\/language\/(' . GtsPluginWordpress::$LANGUAGE_CODE_REGEX . ')\//', $_SERVER['REQUEST_URI'], $matches)) {
                 $this->theme_language = $matches[1];
             }
             if( $this->target_hostname ) {
@@ -236,7 +241,7 @@ class GtsPluginWordpress extends GtsPlugin {
 
             $this->config->plugin_version = GTS_PLUGIN_VERSION;
             $this->save_config();
-            
+
             update_option( GTS_DB_INITIALIZED_OPTION_NAME, true );
 
 
@@ -351,6 +356,7 @@ class GtsPluginWordpress extends GtsPlugin {
         add_filter( 'option_siteurl', array( $this, 'replace_hostname_if_available' ), 1 );
 
         add_filter( 'posts_join', array( $this, 'add_posts_join_criteria' ), 1 );
+        add_filter( 'posts_search', array( $this, 'add_posts_search_criteria' ), 1);
     }
 
 
@@ -409,6 +415,16 @@ class GtsPluginWordpress extends GtsPlugin {
             $wp_table = $wpdb->prefix . "posts";
             $tp_table = $wpdb->prefix . 'gts_translated_posts';
             return "$join INNER JOIN $tp_table ON ($tp_table.local_id = $wp_table.id AND $tp_table.language = '". $this->language. "')";
+        }
+
+        return $join;
+    }
+
+    function add_posts_search_criteria( $join ) {
+
+        if( $join && $this->language ) {
+            $join = preg_replace( '/_posts\.post_title/', '_gts_translated_posts.post_title', $join );
+            $join = preg_replace( '/_posts\.post_content/', '_gts_translated_posts.post_body', $join );
         }
 
         return $join;

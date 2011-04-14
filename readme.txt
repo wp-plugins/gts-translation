@@ -1,30 +1,30 @@
-=== Plugin Name ===
+=== GTS Translation Plugin ===
 Contributors: stevevls
-Tags: translate, translation, crowdsourcing
+Tags: crowdsourcing, translate, translation, translations, translator, blog translator, free translation, language, languages
+Donate Link: http://www.gts-translation.com/
 Requires at least: 2.9
 Tested up to: 3.1.1
-Stable tag: 1.1.5
+Stable tag: 1.1.6
 
-The only translation plugin that provides human translation of your blog content using community translation
-(crowdsourcing).
+This plugin is guaranteed to drive more international traffic to your site by providing high quality translation, and SEO of your translated content.
 
 == Description ==
 
-The GTS Translation WordPress plugin is the only free solution for human translation of blogs. And since the
-translated content is cached in your Wordpress database, it can be SEO optimized and indexed by search engines.
+The GTS Translation plugin provides human quality translation by allowing you to combine automatic translation and human post-editing (crowdsourcing). Your blog content is initially translated by our translation server. The content is then post-edited by human translators through our online editing system. You can use the GTS community of translators, or you can assign the post-editing to your own community of translators to maintain complete control of the process.
 
-Your blog content is initially translated by our translation server. The content is then post-edited by human translators
-through our online editing system. You can use the GTS community of translators, or you can assign the post-editing to
-your own community of translators to maintain complete control of the process.
+When you use the GTS Translation plugin, translated content is cached in your Wordpress database and indexed by search engines. This will increase the traffic to your website and grow your international readership.
 
-After you install the GTS Translation plugin, your blog home page is translated, as well as all of the blog posts that
-appear on the home page. A translation widget is available for any widget-enabled WordPress theme. From this point
-onward, each time a new blog post is published it is automatically translated into the selected languages. You can
-choose to publish the translated content immediately (raw MT output), or to only publish the translated content after it
-has been approved by a moderator.
+**Features:**
 
-Current release supports translating from English to French, Italian, German, Spanish, Portuguese, Japanese and Russian.
-We're actively working to add more languages!
+*	Guaranteed to increase your traffic by at least 30% after 2 months; some customers have seen over 100% increase in traffic
+*	Supports over 10 languages
+*	Uses private, secure translation server
+*	Publish translated content immediately or following review
+*	Crowdsourcing: create your own community of translators or use our community
+*	SEO: translates Permalink URL names and meta tags
+*	Custom online, side-by-side editor makes post-editing easy
+*	Translated posts can be retweeted
+
 
 == Installation ==
 
@@ -74,8 +74,9 @@ No. Comments are are passed through as-is.
 
 = Which languages are supported? =
 * Input: English
-* Output: French, German, Italian, Spanish, Portuguese, Japanese, and Russian
+* Output: Chinese (Simplified and Traditional), Finnish, French, German, Italian, Japanese, Portuguese, Russian, Spanish, and Swedish.
 
+We're continually adding new languages, so for the latest list, click [here](http://translate.gts-translation.com/api/supportedLanguages).
 
 = What URLs will the translated blogs have? =
 
@@ -110,15 +111,19 @@ Once the translated content is approved by a moderator, it is stored on your own
 We'll also keep a copy in our database in case the moderators or editors decide to make more changes.
 
 
-= When I switch my blog to Russian, all I see are question marks...what gives?
+= When I switch my blog to Russian, Japanese, Chinese, etc. all I see are question marks...what gives? =
 This happens when the data is stored in MySQL with the wrong character encoding.  Execute the following SQL (being sure to
 replace 'wp_' with the prefix specified in wp-config.php if you've changed that value):
 
-ALTER TABLE wp_gts_translated_options CONVERT TO CHARACTER SET 'utf8';
+`ALTER TABLE wp_gts_translated_options CONVERT TO CHARACTER SET 'utf8';
 ALTER TABLE wp_gts_translated_posts CONVERT TO CHARACTER SET 'utf8';
-ALTER TABLE wp_gts_translated_terms CONVERT TO CHARACTER SET 'utf8';
+ALTER TABLE wp_gts_translated_terms CONVERT TO CHARACTER SET 'utf8';`
 
 Then get in touch with us so that we can help you reload your content.
+
+= I enabled Chinese language, but hardly any of the links work.  What should I do? =
+In order to work correctly, translations to Chinese require plugin version 1.1.6 or greater.  Version 1.1.5 will
+translate your posts, but won't properly display them.  Upgrade using your WP Admin panel, and you'll be good to go.
 
 
 = What is theme translation? =
@@ -171,6 +176,10 @@ Please see the Security tab.
 
 
 == Changelog ==
+
+= 1.1.6 =
+* Chinese support : Language pattern matching changes and quoted widget JS array keys.
+* Added search functionality in translated blogs.
 
 = 1.1.5 =
 * Added support for translation from English to Japanese and Portuguese.
@@ -247,6 +256,17 @@ plugins or .htaccess files that control the permalink format.
 
 Simply click the "Delete" link in the plugin management window.  This will delete all of your translated data, so
 please be careful!
+
+== Screenshots ==
+
+1. Translation Widget on your blog
+2. Side-by-side Editor
+3. Popup Editor
+4. Crowdsourcing Admin Panel
+
+== Upgrade Notice ==
+
+So far, the plugin is self-upgrading...if there's something to report later, we'll add it!
 
 == Security ==
 

@@ -442,7 +442,8 @@ class GtsLinkRewriter {
         // otherwise, we just do like WP and return the empty rules array.
         if( $wp_rewrite->permalink_structure ) {
 
-            $wp_rewrite->add_rewrite_tag('%'.GtsLinkRewriter::$LANG_PARAM.'%', '([a-z]{2})', GtsLinkRewriter::$LANG_PARAM . '=' );
+            $lang_regex = '(' . GtsPluginWordpress::$LANGUAGE_CODE_REGEX . ')';
+            $wp_rewrite->add_rewrite_tag('%'.GtsLinkRewriter::$LANG_PARAM.'%', $lang_regex, GtsLinkRewriter::$LANG_PARAM . '=' );
 
             // todo - option-ize and localize this prefix.
             // todo - also localize tag/category in url.
@@ -488,7 +489,7 @@ class GtsLinkRewriter {
 
                     unset($newrules[$match]);
 
-                    $match = preg_replace( '/(\[a\-z\]\{2\})/', '($1)', $match );
+                    $match = preg_replace( '/' . preg_quote( $lang_regex ) . '/', '($1)', $match );
                     $params = $params . '&gts_lang=$matches[0]';
                     $params = preg_replace_callback( '/\$matches\[(\d+)\]/', array( $this, 'callback_reindex_match_array' ), $params);
 
