@@ -283,9 +283,12 @@ class GtsLinkRewriter {
                         // more permalink madness.  when WP goes through to attempt canonicalization, it looks at the
                         // $_SERVER array for the REQUEST_URI.  it then "sanitizes" it, which for us means removing all
                         // extended UTF-8 characters.  we'll need to fix that here or risk categories not working...
-                        if ( $encoded_val != $query_vars[ $param_name ] ) {
-                            $_SERVER['REQUEST_URI'] = str_replace( $encoded_val, $query_vars[ $param_name ], $_SERVER['REQUEST_URI'] );
-                        }
+                        //
+                        // what's even stranger, in some cases, the value is already decoded but in others no.  i've witnessed
+                        // this on systems where Russian (2 byte codes) is encoded but Japanese (3 byte codes) is not.  freaking
+                        // weird...
+                        $to_replace = $encoded_val != $query_vars[$param_name] ? $encoded_val : urlencode($query_vars[$param_name]);
+                        $_SERVER['REQUEST_URI'] = str_replace( $to_replace, $query_vars[ $param_name ], $_SERVER['REQUEST_URI'] );
                     }
                 }
             }
