@@ -184,6 +184,7 @@ Please see the *Security* tab.
 * No more 404 for non-nested pages when permalink consists of only the post name (no fix possible for nested pages).
 * Widget now rewrites links using virtual hosts when set.
 * Send 301 redirects to virtual host when a translated blog request comes in via any other host name.
+* Find nested pages in translated languages if parent page hasn't been translated yet.
 
 = 1.1.6 =
 * Chinese support : Language pattern matching changes and quoted widget JS array keys.
