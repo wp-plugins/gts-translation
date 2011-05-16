@@ -370,7 +370,7 @@ class GtsLinkRewriter {
                     $post = get_page_by_title( $part );
                 }
 
-                $original_path[] = $post->post_name;
+                $original_path[] = $post ? $post->post_name : $part;
             }
         }
 

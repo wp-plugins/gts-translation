@@ -121,7 +121,7 @@ In order to work correctly, translations to Chinese require plugin version 1.1.6
 translate your posts, but won't properly display them.  Upgrade using your WP Admin panel, and you'll be good to go.
 
 = How do I use the virtual host feature? =
-Please see the *Virtual Host Setup* tab.
+Please see the *Virtual Host Setup* section in the *Other Notes* tab.
 
 = What is theme translation? =
 Your WordPress theme is made up of a series of PHP files called templates.
@@ -170,7 +170,7 @@ This list is a work in progress and may grow as we roll out to more users.
 
 
 = How secure is the system? =
-Please see the *Security* tab.
+Please see the *Security* section in the *Other Notes* tab.
 
 
 == Changelog ==
@@ -184,6 +184,7 @@ Please see the *Security* tab.
 * No more 404 for non-nested pages when permalink consists of only the post name (no fix possible for nested pages).
 * Widget now rewrites links using virtual hosts when set.
 * Send 301 redirects to virtual host when a translated blog request comes in via any other host name.
+* Find nested pages in translated languages if parent page hasn't been translated yet.
 
 = 1.1.6 =
 * Chinese support : Language pattern matching changes and quoted widget JS array keys.
@@ -276,40 +277,6 @@ please be careful!
 
 So far, the plugin is self-upgrading...if there's something to report later, we'll add it!
 
-== Security ==
-
-While providing high quality translation with our crowdsourced post-editing functionality, it's of the utmost importance
-to ensure the security of your blog.  We provide functionality that is out-of-band of the traditional WordPress publishing
-cycle.  As such, our plugin adds a hook into your blog that allows GTS to programmatically update the translated content
-in your local WordPress database.  We've put a lot of thought into ensuring that our system can use this hook while locking
-it against any potential malicious users.
-
-The first step to securing our system is to make sure that it's really *you* and your blog requesting that your blog be
-signed up for translation.  First, we only accept registration requests that originate from the WP admin page of the blog
-that will be translated.  When the user clicks off of the admin page, a digital fingerprint is created and saved to your
-WP database, and then it's sent over an SSL-encrypted channel to our server.  When the registration request reaches our
-server, we will open an HTTP connection back to the requesting blog and verify that a) it has our plugin installed, and b)
-using an encryption technique called hashing, that the fingerprint matches.  If one of those checks fail, we won't register
- the blog for translation.
-
-Now that we've verified the blog, we'll assign you a Blog ID and an API Access Key.  These will be automatically added to
-your configuration panel via the registration panel, plus they will be sent to your administrator email address.  We will
-use these two strings for identifying your blog and to ensure that information isn't tampered either en-route to us.  It
-will also be used by your blog to verify that translated content posted back to your blog is legitimate.  Again, we use
-an encryption technique called hashing.  Whenever your blog sends a translation request to us or we send translated content
-back to you, we create a signature (or hash) of that content PLUS the API Access Key (if you're really interested in details,
-using the SHA-1 algorithm).  Provided that the API Access Key is kept secret, this technique is extremely secure and resistant
-to tampering.  The odds of a malicious person guessing your API key are astronomical : more than 1 in 10^229.  However,
-as with any password, security depends on keeping it secret.  If at any time, you think that your key has been compromised,
-GTS will deactivate the current key and issue you a new one.
-
-Other measures we take to secure data coming back to your blog include using a whitelist of IP addresses that are allowed
-to use the hook for posting translated content and limiting the size of the post to ~250KB so that, even if all other measures
-fail, an attacker can't eat up all the memory on your machine.
-
-We have dedicated lots of thought to locking down this system, and we are very confident that it's secure.
-After reading this, we hope you will be too!
-
 == Virtual Host Setup ==
 
 ### How to setup the Virtual Host feature on the GTS Plugin ###
@@ -375,3 +342,38 @@ This is the easiest part:
 1. Click the "Save Changes" button.
 
 Voila, translated links will point to your new host!
+
+
+== Security ==
+
+While providing high quality translation with our crowdsourced post-editing functionality, it's of the utmost importance
+to ensure the security of your blog.  We provide functionality that is out-of-band of the traditional WordPress publishing
+cycle.  As such, our plugin adds a hook into your blog that allows GTS to programmatically update the translated content
+in your local WordPress database.  We've put a lot of thought into ensuring that our system can use this hook while locking
+it against any potential malicious users.
+
+The first step to securing our system is to make sure that it's really *you* and your blog requesting that your blog be
+signed up for translation.  First, we only accept registration requests that originate from the WP admin page of the blog
+that will be translated.  When the user clicks off of the admin page, a digital fingerprint is created and saved to your
+WP database, and then it's sent over an SSL-encrypted channel to our server.  When the registration request reaches our
+server, we will open an HTTP connection back to the requesting blog and verify that a) it has our plugin installed, and b)
+using an encryption technique called hashing, that the fingerprint matches.  If one of those checks fail, we won't register
+ the blog for translation.
+
+Now that we've verified the blog, we'll assign you a Blog ID and an API Access Key.  These will be automatically added to
+your configuration panel via the registration panel, plus they will be sent to your administrator email address.  We will
+use these two strings for identifying your blog and to ensure that information isn't tampered either en-route to us.  It
+will also be used by your blog to verify that translated content posted back to your blog is legitimate.  Again, we use
+an encryption technique called hashing.  Whenever your blog sends a translation request to us or we send translated content
+back to you, we create a signature (or hash) of that content PLUS the API Access Key (if you're really interested in details,
+using the SHA-1 algorithm).  Provided that the API Access Key is kept secret, this technique is extremely secure and resistant
+to tampering.  The odds of a malicious person guessing your API key are astronomical : more than 1 in 10^229.  However,
+as with any password, security depends on keeping it secret.  If at any time, you think that your key has been compromised,
+GTS will deactivate the current key and issue you a new one.
+
+Other measures we take to secure data coming back to your blog include using a whitelist of IP addresses that are allowed
+to use the hook for posting translated content and limiting the size of the post to ~250KB so that, even if all other measures
+fail, an attacker can't eat up all the memory on your machine.
+
+We have dedicated lots of thought to locking down this system, and we are very confident that it's secure.
+After reading this, we hope you will be too!
