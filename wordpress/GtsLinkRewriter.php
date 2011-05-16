@@ -318,13 +318,18 @@ class GtsLinkRewriter {
             $this->original_category_name = substr( $this->original_category_name, $idx + 1 );
         }
 
+        // HACK ALERT! : when we replace the slug, we'll set pagename and unset name if the post is actually a page.
+        // this can happen when the peramlink is only the post name...there are conflict for more than a single-word
+        // page name.  so after replacing all the slugs, we'll rewrite the pagename only if we haven't already!
+        $has_name = $query_vars['name'];
+
         // now do replacements for any of our translated slugs.
         $this->replace_with_slug( $query_vars, 'tag' );
         $this->replace_with_slug( $query_vars, 'name' );
         $this->replace_with_slug( $query_vars, 'category_name' );
         $this->replace_with_slug( $query_vars, 'term' );
 
-        if( $query_vars[GtsLinkRewriter::$LANG_PARAM] && $query_vars['pagename'] ) {
+        if( !$has_name && $query_vars[GtsLinkRewriter::$LANG_PARAM] && $query_vars['pagename'] ) {
             $query_vars['pagename'] = $this->get_original_pagename( $query_vars['pagename'], $query_vars['gts_lang'] );
         }
 

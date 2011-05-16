@@ -221,6 +221,7 @@ abstract class GtsPlugin {
                     $language_xml->recentlyAdded == "true",
                 (string) $language_xml->displayCountryCode,
                 (string) $language_xml->wordpressLocaleName,
+                (string) $language_xml->textDirection,
                 $localization_strings
             );
         }
@@ -388,7 +389,7 @@ abstract class GtsPlugin {
         // known issues with their HTML parsing, and somewhere in the systran/jericho pipeline, these elements
         // get expanded into open/close tags.  therefore, we need to be able to differentiate.
         if ($m[5]) {
-            return "<shortcode-content-$tag$attr>$m[5]</shortcode-content-$tag>";
+            return "<shortcode-content-$tag$attr>$m[5]</shortcode-content-$tag$attr>";
         }
 
         return "<shortcode-empty-$tag$attr$m[4]>";

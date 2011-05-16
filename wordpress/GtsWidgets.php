@@ -147,7 +147,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
         // parameter and we can call it a day.
         if( !$wp_rewrite->permalink_structure ) {
 
-            $link = $this->get_homed_url( $home, null );
+            $link = $this->get_homed_url( $home );
             if( $lang->code == $gts_plugin->config->source_language ) {
                 $link = remove_query_arg( "language", $link );
             }
@@ -160,7 +160,11 @@ class GTS_LanguageSelectWidget extends WP_Widget {
             // and if we have permalink support, there's a whole mess of special cases.  most
             // of them boil down to running the link through the plugin with the language overridden.
 
-            $homed_url = $this->get_homed_url( $home, $lang->code );
+            $home_url = parse_url( $home );
+            $lang_url = parse_url( $gts_plugin->do_with_language( array($this, 'callback_get_home'), $lang->code ) );
+            $home = str_replace( $home_url['host'], $lang_url['host'], $home );
+
+            $homed_url = $this->get_homed_url( $home );
             $interesting_part = substr( $homed_url, strlen( $home ) );
 
             if( $is_source ) {
@@ -290,7 +294,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
     }
 
 
-    function get_homed_url( $home, $lang ) {
+    function get_homed_url( $home ) {
 
         $home = untrailingslashit( $home );
         preg_match( '/^(.*?)([#?].*)?$/', $_SERVER['REQUEST_URI'] , $matches );

@@ -84,6 +84,7 @@ class com_gts_ApiClient {
             'Content-type: text/xml; charset=utf-8',
             'Content-length: ' . strlen( $data ),
             'X-Gts-Signature: ' . sha1( $data . $this->api_access_key ),
+            'X-Gts-Plugin-Version: ' . GTS_PLUGIN_VERSION,
         );
 
         $fp = @fsockopen( $this->api_host, $this->api_port );

@@ -57,7 +57,7 @@ class GtsPluginWordpress extends GtsPlugin {
     function __construct() {
         parent::__construct();
 
-        global $wpdb, $wp_rewrite;
+        global $wpdb;
         $this->wpdb = $wpdb;
 
         $this->link_rewriter = new GtsLinkRewriter();
@@ -73,6 +73,7 @@ class GtsPluginWordpress extends GtsPlugin {
             if( preg_match('/\/language\/(' . GtsPluginWordpress::$LANGUAGE_CODE_REGEX . ')\//', $_SERVER['REQUEST_URI'], $matches)) {
                 $this->theme_language = $matches[1];
             }
+
             if( $this->target_hostname ) {
                 $this->theme_language = $this->language;
             }
@@ -81,6 +82,25 @@ class GtsPluginWordpress extends GtsPlugin {
             $this->theme_language = $_GET['language'];
         }
 
+        // now that all that is squared away, see if we need to redirect to a virtual host.  if a virtual host is
+        // set, we want to avoid serving up content from any other hostname so that for SEO purposes we don't have
+        // the same page hosted in two places.
+        if( $this->theme_language ) {
+
+            $virtual_host = $this->config->target_hostnames[$this->theme_language];
+            if( $virtual_host && $virtual_host != $_SERVER['HTTP_HOST'] ) {
+
+                $https = $_SERVER['HTTPS'] == 'on';
+                $server_port = $_SERVER['SERVER_PORT'];
+
+                $protocol = 'http' . ($https ? 's' : '');
+                $port = (!$https && $server_port == 80) || ($https && $server_port == 443) ? '' : ":$server_port";
+
+                $url = "Location: $protocol://$virtual_host$port" . $_SERVER['REQUEST_URI'];
+                header($url, true, 301);
+                die();
+            }
+        }
     }
 
 
@@ -435,8 +455,15 @@ class GtsPluginWordpress extends GtsPlugin {
 
         // locale is loaded before query parameters are parsed, so like with the theme,
         // we have to detect the language prior to parsing params.
-        if ( $this->theme_language != $this->config->source_language ) {
-            return com_gts_Language::get_by_code( $this->theme_language )->wordpressLocaleName;
+        if ( $this->theme_language && $this->theme_language != $this->config->source_language ) {
+
+            $lang_by_code = com_gts_Language::get_by_code($this->theme_language);
+
+            // this is also a good time to go about setting the text direction...
+            global $text_direction;
+            $text_direction = $lang_by_code->textDirection;
+
+            return $lang_by_code->wordpressLocaleName;
         }
 
         return $locale;
@@ -911,21 +938,18 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function filter_translated_bloginfo( $bloginfo, $show ) {
 
-        if($show == 'name') {
-            $show = 'blogname';
-        }
-        else if($show == 'description') {
+        if( $show == 'name' || $show == 'description' ) {
             $show = "blog$show";
         }
 
-        if($this->language) {
-            switch($show) {
+        if( $this->language ) {
+            switch( $show ) {
                 case 'language':
-                    return $this->language;
+                    return com_gts_Language::get_by_code( $this->theme_language )->wordpressLocaleName;
                 case 'blogname':
                 case 'blogdescription':
                     $translated_option = $this->get_translated_named_option( $show, $this->language );
-                    if($translated_option) {
+                    if( $translated_option ) {
                         return $translated_option->value;
                     }
             }
@@ -1123,8 +1147,33 @@ class GtsPluginWordpress extends GtsPlugin {
         }
 
         $post = $this->get_translated_blog_post( $post_id, $this->language );
+
+        // easy case...the post is valid and we return the title!
         if( $post ) {
             return $post->post_title;
+        }
+
+        // less easy case...  this is a fix for WP menus, which do some really retarded
+        // things with copying the data from the post around and sending the category through
+        // here.  it's ridiculous...
+        if( !$post && !in_the_loop() && is_nav_menu_item( $post_id ) ) {
+
+            $post_type = get_post_meta( $post_id, '_menu_item_object' );
+            $original_post_id = get_post_meta( $post_id, '_menu_item_object_id' );
+
+            if( $post_type[0] == 'page' ) {
+                $post = $this->get_translated_blog_post( $original_post_id[0] , $this->language );
+                if( $post ) {
+                    return $post->post_title;
+                }
+            }
+            else if( $post_type[0] == 'category' ) {
+                $category = $this->get_translated_blog_term( $original_post_id[0], $this->language );
+                if( $category ) {
+                    return $category->name;
+                }
+            }
+
         }
 
         return $title;

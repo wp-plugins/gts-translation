@@ -52,10 +52,11 @@ class com_gts_Language {
     var $recentlyAdded;
     var $displayCountryCode;
     var $wordpressLocaleName;
+    var $textDirection;
 
     var $localizationStrings;
 
-    function __construct( $code, $name, $englishName, $input, $output, $latin, $recentlyAdded,  $displayCountryCode, $wordpressLocaleName, $localizationStrings ) {
+    function __construct( $code, $name, $englishName, $input, $output, $latin, $recentlyAdded,  $displayCountryCode, $wordpressLocaleName, $textDirection, $localizationStrings ) {
         $this->code = $code;
         $this->name = $name;
         $this->englishName = $englishName;
@@ -65,6 +66,7 @@ class com_gts_Language {
         $this->recentlyAdded = $recentlyAdded;
         $this->displayCountryCode = $displayCountryCode;
         $this->wordpressLocaleName = $wordpressLocaleName;
+        $this->textDirection = $textDirection;
         $this->localizationStrings = $localizationStrings;
     }
 

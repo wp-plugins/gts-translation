@@ -3,8 +3,8 @@ Contributors: stevevls
 Tags: crowdsourcing, translate, translation, translations, translator, blog translator, free translation, language, languages
 Donate Link: http://www.gts-translation.com/
 Requires at least: 2.9
-Tested up to: 3.1.1
-Stable tag: 1.1.6
+Tested up to: 3.1.2
+Stable tag: 1.1.7
 
 This plugin is guaranteed to drive more international traffic to your site by providing high quality translation, and SEO of your translated content.
 
@@ -17,7 +17,7 @@ When you use the GTS Translation plugin, translated content is cached in your Wo
 **Features:**
 
 *	Guaranteed to increase your traffic by at least 30% after 2 months; some customers have seen over 100% increase in traffic
-*	Supports over 10 languages
+*	Supports over 30 languages
 *	Uses private, secure translation server
 *	Publish translated content immediately or following review
 *	Crowdsourcing: create your own community of translators or use our community
@@ -63,18 +63,13 @@ Or, you can have the work done by the GTS community which is a worldwide network
 experts.
 
 
-= Do you outsource the machine translation? =
-The translation server used to do the machine translation is a private server which is owned by GTS. It does not use any
-of the public machine translations engines such as Google or Microsoft. This means that your content is secure and will
-not be shared with other companies or bloggers.
-
 = Are comments translated? =
 No. Comments are are passed through as-is.
 
 
 = Which languages are supported? =
 * Input: English
-* Output: Chinese (Simplified and Traditional), Finnish, French, German, Italian, Japanese, Portuguese, Russian, Spanish, and Swedish.
+* Output: Chinese (Simplified and Traditional), Dutch, Finnish, French, German, Hebrew, Italian, Japanese, Polish, Portuguese, Russian, Spanish, Swedish, Thai, and Turkish.
 
 We're continually adding new languages, so for the latest list, click [here](http://translate.gts-translation.com/api/supportedLanguages).
 
@@ -125,6 +120,8 @@ Then get in touch with us so that we can help you reload your content.
 In order to work correctly, translations to Chinese require plugin version 1.1.6 or greater.  Version 1.1.5 will
 translate your posts, but won't properly display them.  Upgrade using your WP Admin panel, and you'll be good to go.
 
+= How do I use the virtual host feature? =
+Please see the *Virtual Host Setup* tab.
 
 = What is theme translation? =
 Your WordPress theme is made up of a series of PHP files called templates.
@@ -167,15 +164,26 @@ There is a maximum entry size of 256KB...roughly equivalent to 75 pages of singl
 Unforunately, yes.  Here is a list of plugins that cause problems with the GTS Plugin:
 
 * ICanLocalize  (inserts invalid HTML into the post body)
+* Recently Popular  (directly selects posts from the DB, so plugin hooks are bypassed)
 
 This list is a work in progress and may grow as we roll out to more users.
 
 
 = How secure is the system? =
-Please see the Security tab.
+Please see the *Security* tab.
 
 
 == Changelog ==
+
+= 1.1.7 =
+* Right-to-left language support.
+* Send plugin version with API Client requests so responses can be tailored (e.g. RTL language require 1.1.7+)
+* Minor bugfix where bloginfo('language') returned empty string when blog is in English.
+* Return locale name (per WP behavior) instead of language code from bloginfo('language').
+* Translate title text for categories and posts in WP nav menus.
+* No more 404 for non-nested pages when permalink consists of only the post name (no fix possible for nested pages).
+* Widget now rewrites links using virtual hosts when set.
+* Send 301 redirects to virtual host when a translated blog request comes in via any other host name.
 
 = 1.1.6 =
 * Chinese support : Language pattern matching changes and quoted widget JS array keys.
@@ -301,3 +309,69 @@ fail, an attacker can't eat up all the memory on your machine.
 
 We have dedicated lots of thought to locking down this system, and we are very confident that it's secure.
 After reading this, we hope you will be too!
+
+== Virtual Host Setup ==
+
+### How to setup the Virtual Host feature on the GTS Plugin ###
+
+By default, the translated versions of your website/blog resolves to a URL address which is a subdirectory of your site’s URL address. For example,
+the Spanish version of your site resolves to http://mywebsite.com/language/es.
+
+With the GTS Translation Plugin Virtual Host feature you can publish translated versions of yor website/blog under a separate subdomain or top-level
+domain (TLD). So for example, if your blog is www.mywebsite.com you can serve the Spanish version from www.mywebsite.es.  Alternately, you can use
+ subdomains (e.g. es.mywebsite.com) so that you don't have to buy a domain for each language.
+
+To implement the virtual hosts feature, follow these steps:
+
+### 1. Configure DNS ###
+
+**For Top Level Domains:**
+
+1. Register your new domain (e.g. www.mywebsite.es.) with a recognized domain registrar.
+1. In your DNS zone, set the A record for www.mywebsite.es to point to the IP address of your web server.
+
+**For Subdomains:**
+
+1. Create a CNAME alias for your web server (e.g. es.mywebsite.com)
+
+How to complete these steps will depend on your hosting provider.  If you get stuck, please follow up with your support team.
+
+### 2.  Configure your Web Server ###
+
+Please note that all of the translated blogs will be hosted from the same WordPress installation as your current blog.
+
+**For Hosted Blogs:**
+
+Your hosting provider will provide a control panel to map a hostname to a Document Root.  For each translated host name, enter the exact same Document
+Root as your blog.
+
+**For Self-hosted Blogs:**
+
+These instructions are only valid for Apache.  If you use IIS or another web server, please consult the relevant documentation.
+
+First off, you need to be set up with Name Based Virtual Hosts (http://httpd.apache.org/docs/2.0/vhosts/name-based.html).  Once you have your blog's
+virtual host set up, add the new hostname to the ServerAlias directive.
+
+
+>     <VirtualHost *:80>
+>
+>       ServerName     www.mywebsite.com
+>       ServerAlias    www.mywebsite.es
+>       DocumentRoot   /path/to/wordpress/install
+>
+>       # Other configuration here...
+>
+>     </VirtualHost>
+
+If you have multiple aliases, remember that the ServerAlias can be a list or can include wildcards…it can save time!
+
+
+### 3.  Configure the GTS Plugin ###
+
+This is the easiest part:
+
+1. Go to the "GTS Settings" admin page.
+1. Enter the host name in the "Virtual Host" input next to the desired language.
+1. Click the "Save Changes" button.
+
+Voila, translated links will point to your new host!
