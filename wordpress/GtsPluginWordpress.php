@@ -227,7 +227,7 @@ class GtsPluginWordpress extends GtsPlugin {
             $this->send_info_notification(__('GTS is almost ready to translate your blog'), sprintf(__('Please visit the <a href="admin.php?page=%1$s">configuration page</a> to get started.'), GTS_MENU_NAME));
         }
 
-        $save_config |= $this->send_notifications( $this->config->info_messages, 'info' );
+        $save_config = $this->send_notifications( $this->config->info_messages, 'info' );
         $save_config |= $this->send_notifications( $this->config->error_messages, 'error' );
 
         if($save_config) {
@@ -377,6 +377,9 @@ class GtsPluginWordpress extends GtsPlugin {
 
         add_filter( 'posts_join', array( $this, 'add_posts_join_criteria' ), 1 );
         add_filter( 'posts_search', array( $this, 'add_posts_search_criteria' ), 1);
+
+        add_filter( 'comment_excerpt', array( $this, 'set_comment_text_direction') );
+        add_filter( 'comment_text',  array( $this, 'set_comment_text_direction') );
     }
 
 
@@ -469,6 +472,17 @@ class GtsPluginWordpress extends GtsPlugin {
         return $locale;
     }
 
+
+    function set_comment_text_direction( $text ) {
+
+        global $text_direction;
+        if( !strcasecmp( $text_direction, 'rtl' ) && !preg_match( '/^(ar)|(he)/', WPLANG ) ) {
+            $text = "<span dir=\"ltr\">$text</span>";
+        }
+
+        return $text;
+    }
+
     
     function rewrite_mofile_path( $mofile, $domain ) {
 
@@ -543,8 +557,13 @@ class GtsPluginWordpress extends GtsPlugin {
         $svn_url = "/wordpress-i18n/$locale_name";
         $svn_messages_dir = "messages" . ( $domain != "default" ? "/$domain" : "");
 
-        if( file_exists( GTS_I18N_DIR . "/$wp_version/$domain/$locale_name.mo")) {
-            return TRUE;
+        $mofile = GTS_I18N_DIR . "/$wp_version/$domain/$locale_name.mo";
+        if( file_exists( $mofile ) ) {
+            if( $this->is_valid_mofile( $mofile ) ) {
+                return TRUE;
+            }
+
+            @unlink( $mofile );
         }
 
         $tags_fp = $this->url_get_stream( $svn_host, 80, "$svn_url/tags/" );
@@ -613,7 +632,40 @@ class GtsPluginWordpress extends GtsPlugin {
         fclose( $mo_stream );
         fclose( $fh );
 
-        return TRUE;
+        // check the headers to make sure that we have a .mofile
+        return $this->is_valid_mofile( $filename );
+    }
+
+
+    function is_valid_mofile( $filename ) {
+
+        $valid = FALSE;
+        $fh = @fopen( $filename, 'r' );
+
+        if ( $fh ) {
+
+            $bytes = fread( $fh, 4 );
+            if( $bytes !== FALSE ) {
+
+                $unpacked = unpack( "Lmagic", $bytes );
+                $magic = $unpacked["magic"];
+
+                // this is borrowed from WP code...checks the magic header of the
+                // .mo file to make sure that it at least has the right prefix.
+
+                // The magic is 0x950412de
+                // bug in PHP 5.0.2, see https://savannah.nongnu.org/bugs/?func=detailitem&item_id=10565
+                $magic_little = (int) - 1794895138;
+                $magic_little_64 = (int) 2500072158;
+                // 0xde120495
+                $magic_big = ((int) - 569244523) & 0xFFFFFFFF;
+                $valid = ( $magic_little == $magic || $magic_little_64 == $magic || $magic_big == $magic );
+            }
+        }
+
+        fclose( $fh );
+
+        return $valid;
     }
 
 
@@ -629,8 +681,18 @@ class GtsPluginWordpress extends GtsPlugin {
             @fwrite( $fp, "\r\n" );
 
             // in our ghetto wire impl, we'll ignore headers.  when we come across
-            // the first blank \r\n, we'll return the result.
+            // the first blank \r\n, we'll return the result.  we'll also check
+            // the very first line for the HTTP status and return false if not 200.
+            $first = true;
             while ( $str = @fgets( $fp, 4096) ) {
+
+                if( $first ) {
+                    if( !preg_match( '/^HTTP\/\d+\.\d+ 200/', $str, $matches ) ) {
+                        return false;
+                    }
+                    $first = false;
+                }
+
                 if ( $str == "\r\n" ) {
                     return $fp;
                 }
@@ -1353,7 +1415,6 @@ if(!gtsenv_is_wp_loaded()) {
 
         if(@file_exists($gtsenv_filename)) {
             require_once $gtsenv_filename;
-            break;
         }
     }
 

@@ -33,14 +33,14 @@
  
 require_once('../GtsPlugin.php');
 
-$taxonomies = array();
-foreach( get_taxonomies( array(), 'objects' ) as $taxonomy ) {
-    if ( in_array( 'post', $taxonomy->object_type ) ) {
-        array_push( $taxonomies, $taxonomy->name );
+$terms = array();
+$posts = get_posts( array( 'numberposts', get_option('posts_per_page') ) );
+
+foreach( $posts as $post ) {
+    foreach( $gts_plugin->get_blog_post_terms( $post->ID ) as $term ) {
+        $terms[] = $term;
     }
 }
-
-$terms = get_terms( $taxonomies, array( 'hide_empty' => true ) );
 
 $output_xml = new com_gts_Terms();
 foreach( $terms as $term ) {

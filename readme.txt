@@ -3,8 +3,8 @@ Contributors: stevevls
 Tags: crowdsourcing, translate, translation, translations, translator, blog translator, free translation, language, languages
 Donate Link: http://www.gts-translation.com/
 Requires at least: 2.9
-Tested up to: 3.1.2
-Stable tag: 1.1.7
+Tested up to: 3.2.1
+Stable tag: 1.1.8
 
 This plugin is guaranteed to drive more international traffic to your site by providing high quality translation, and SEO of your translated content.
 
@@ -163,8 +163,10 @@ There is a maximum entry size of 256KB...roughly equivalent to 75 pages of singl
 = Are there any incompatible plugins? =
 Unforunately, yes.  Here is a list of plugins that cause problems with the GTS Plugin:
 
+* Uniquefier (incompatible with multi-byte character sets.  Posts come out as ? marks)
 * ICanLocalize  (inserts invalid HTML into the post body)
 * Recently Popular  (directly selects posts from the DB, so plugin hooks are bypassed)
+
 
 This list is a work in progress and may grow as we roll out to more users.
 
@@ -174,6 +176,11 @@ Please see the *Security* section in the *Other Notes* tab.
 
 
 == Changelog ==
+
+= 1.1.8 =
+* Comments rendered LTR unless WPLANG is Arabic or Hebrew.
+* Fewer terms translated immediately upon signup.
+* Be more proactive about checking validity of downloaded .mo files and remove invalid files during cron job.
 
 = 1.1.7 =
 * Right-to-left language support.
