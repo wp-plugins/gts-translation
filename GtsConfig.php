@@ -58,6 +58,5 @@ class GtsConfig {
 
     var $synchronous;
     var $use_translated_theme;
-
-    // todo - upgrade schema here.
+    var $auto_detect_language = true;
 }

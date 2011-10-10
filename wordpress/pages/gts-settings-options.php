@@ -69,6 +69,13 @@ if ( $_GET['initialize'] ) {
             $options_initialized = true;
         }
     }
+
+    try {
+        $gts_plugin->initialize_available_languages( $gts_plugin->fetch_and_cache_available_languages() );
+    }
+    catch(Exception $e) {
+        $gts_plugin->send_error_notification("Unable to Load Languages", "We're currently unable to load the list of supported languages...please try again later.");
+    }
 }
 else {
     try {
@@ -186,8 +193,27 @@ function format_api_key( $key, $chunk = 32 ) {
                 <td><input type="checkbox" name="<?php echo sprintf('%s[%s]', GTS_OPTION_NAME, GTS_SETTING_SYNCHRONOUS) ?>"<?php if($options[GTS_SETTING_SYNCHRONOUS]) echo ' checked';?>/></td>
             </tr>
 
+            <tr valign="top">
+                <td scope="row">Auto-detect browser's language and prompt to change if different?</td>
+                <td><input type="checkbox" name="<?php echo sprintf('%s[%s]', GTS_OPTION_NAME, GTS_SETTING_AUTO_DETECT_LANG) ?>"<?php if($options[GTS_SETTING_AUTO_DETECT_LANG]) echo ' checked';?>/></td>
+            </tr>
+
             <?php if ( $is_debug ) { ?>
+
             <script type="text/javascript">
+
+                function ajax_update_cached_languages() {
+                    jQuery.post(ajaxurl, { action: 'gts_update_cached_languages' }, function(response) {
+                        alert("Languages have been updated...");
+                    });
+                }
+
+                function ajax_update_cached_mofiles() {
+                    jQuery.post(ajaxurl, { action: 'gts_update_cached_mofiles' }, function(response) {
+                        alert(".mo files have been updated...");
+                    });
+                }
+
                 function ajax_reset_plugin() {
                     if ( confirm('Are you sure you want to reset the plugin?  It will also be cleared on the backend.')) {
                         var data  = {
@@ -200,6 +226,15 @@ function format_api_key( $key, $chunk = 32 ) {
                     }
                 }
             </script>
+
+            <tr valign="top">
+                <td scope="row" colspan="2"><a href="javascript:ajax_update_cached_languages();">Update Cached Language Settings</a></td>
+            </tr>
+
+            <tr valign="top">
+                <td scope="row" colspan="2"><a href="javascript:ajax_update_cached_mofiles();">Update Cached .mo Files</a></td>
+            </tr>
+
             <tr valign="top">
                 <td scope="row" colspan="2"><a href="javascript:ajax_reset_plugin();">Kill this blog</a></td>
             </tr>

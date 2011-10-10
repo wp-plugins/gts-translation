@@ -149,6 +149,9 @@ abstract class GtsPlugin {
             }
 
             $this->api_client->get_api_response( 'reactivateBlog', $request, true );
+
+            // if we successfully reactivated, try to get the latest languages.
+            $this->fetch_and_cache_available_languages();
         }
     }
 
@@ -164,19 +167,14 @@ abstract class GtsPlugin {
 
     function load_available_languages() {
 
-        $languages = $this->get_cached_available_languages();
+        // only try to load languages from the cache.  we don't want to inadvertently call
+        // the remote API if this host has problems receiving data.  the daily cron job
+        // should be more than enough!
+        $this->initialize_available_languages( $this->get_cached_available_languages() );
+    }
 
-        if( !$languages ) {
 
-            try {
-                $languages = $this->fetch_and_cache_available_languages();
-            }
-            catch(Exception $e) {
-                $this->send_error_notification("Unable to Load Languages", "We're currently unable to load the list of supported languages...please try again later.");
-                $languages = array();
-            }
-        }
-
+    function initialize_available_languages( $languages ) {
 
         // TODO - the language stuff should probably be factored into this class rather than have it outside.
         // it made more sense to have it that way before the API was responsible for loading languages...

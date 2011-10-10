@@ -41,6 +41,12 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
     function widget($args, $instance) {
 
+        // don't display the widget if there's a plugin misconfiguration that has kept the languages
+        // from getting loaded from the API.
+        if( count( com_gts_Language::$ALL_LANGUAGES ) == 0 ) {
+            return;
+        }
+
         extract($args);
 
         global $gts_plugin;
@@ -91,6 +97,9 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                 var com_gts_languageLookup = {
                     <?php
                     foreach ( $languages_with_links as $lang => $link ) {
+                        if( $gts_plugin->config->auto_detect_language && !$_COOKIE['gts_skipAutoDetect'] ) {
+                            $link = add_query_arg( 'gtsLanguageSource', 'widget', $link );
+                        }
                         echo "\"$lang\" : '$link',\n";
                     }
                     ?>
@@ -116,7 +125,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
             <p style="vertical-align: middle; margin-top:3px">
                 <span>
-                    <?php if ( !$gts_plugin->language ) { ?><a href="http://www.gts-translation.com/" target="_blank"><?php } ?>
+                    <?php if ( !$gts_plugin->language ) { ?><a href="http://webtranslator.gts-translation.com/" target="_blank"><?php } ?>
                     <?php echo com_gts_Language::get_by_code( $curr_lang )->localizationStrings['WidgetPoweredBy']; ?>
                     <?php if ( !$gts_plugin->language ) echo "</a>" ?>
                     <img src="<?php echo GTS_PLUGIN_URL ?>/wordpress/images/logo_trans_sm.png" alt="GTS Translation" title="GTS Translation"/>

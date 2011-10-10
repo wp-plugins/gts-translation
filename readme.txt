@@ -4,7 +4,7 @@ Tags: crowdsourcing, translate, translation, translations, translator, blog tran
 Donate Link: http://www.gts-translation.com/
 Requires at least: 2.9
 Tested up to: 3.2.1
-Stable tag: 1.1.8
+Stable tag: 1.1.9
 
 This plugin is guaranteed to drive more international traffic to your site by providing high quality translation, and SEO of your translated content.
 
@@ -163,9 +163,10 @@ There is a maximum entry size of 256KB...roughly equivalent to 75 pages of singl
 = Are there any incompatible plugins? =
 Unforunately, yes.  Here is a list of plugins that cause problems with the GTS Plugin:
 
-* Uniquefier (incompatible with multi-byte character sets.  Posts come out as ? marks)
-* ICanLocalize  (inserts invalid HTML into the post body)
-* Recently Popular  (directly selects posts from the DB, so plugin hooks are bypassed)
+* Uniquefier : incompatible with multi-byte character sets.  Posts come out as ? marks.
+* ICanLocalize : inserts invalid HTML into the post body.
+* Recently Popular : directly selects posts from the DB, so plugin hooks are bypassed.
+* Another WordPress Classifieds Plugin (aka AWPCP) : Classifieds cannot be translated and URLs produce 404 for foreign languages.
 
 
 This list is a work in progress and may grow as we roll out to more users.
@@ -176,6 +177,13 @@ Please see the *Security* section in the *Other Notes* tab.
 
 
 == Changelog ==
+
+= 1.1.9 =
+* Option to auto-detect browser's language and display the website/blog in the user's language (after user is prompted).
+* Support for automatic localization of twentyeleven theme.
+* Remove possibility to download language specifications from page delivery path (causes problems for hosts which cannot connect to GTS API).
+* Don't render widget if language specifications haven't been downloaded from GTS API.
+* Ignore errors when closing .mo file handles (avoids irrelevant error messages in the server log).
 
 = 1.1.8 =
 * Comments rendered LTR unless WPLANG is Arabic or Hebrew.

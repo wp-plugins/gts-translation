@@ -244,6 +244,8 @@ class GtsPluginWordpress extends GtsPlugin {
 
         if ( GTS_DEBUG_MODE ) {
             add_action( 'wp_ajax_gts_kill_blog', array( get_class( $this ), 'uninstall_gts_plugin') );
+            add_action( 'wp_ajax_gts_update_cached_languages', array( $this, 'fetch_and_cache_available_languages' ) );
+            add_action( 'wp_ajax_gts_update_cached_mofiles', array( $this, 'fetch_and_cache_mofiles' ) );
         }
     }
 
@@ -340,6 +342,11 @@ class GtsPluginWordpress extends GtsPlugin {
 
         add_action( 'wp_head', array($this, 'add_link_rel_elements') );
 
+        if( $this->config->auto_detect_language ) {
+            add_action( 'init', array($this, 'intercept_widget_requests' ) );
+            add_action( 'wp_head', array($this, 'add_lang_detection_script') );
+        }
+
 
         // only register our theme directories when we're not in admin view.  otherwise, it will
         // clutter up the view.
@@ -425,6 +432,72 @@ class GtsPluginWordpress extends GtsPlugin {
         foreach( $all_langs as $lang ) {
             if( $lang != $selected_lang ) {
                 echo "<link rel=\"alternate\" hreflang=\"$lang\" href=\"" . $widget->get_current_url_for_language( com_gts_Language::get_by_code( $lang) ) . "\" />\n";
+            }
+        }
+    }
+
+
+    /**
+     * when a request comes in to change the language explicitly (e.g. via the widget)
+     * we remove the gtsLanguageSource parameter from the URL, set our skipAutoDetect
+     * cookie, and redirect w/out the language source param (for bookmarking).
+     */
+    function intercept_widget_requests() {
+        if( $_GET['gtsLanguageSource'] ) {
+            setcookie( 'gts_skipAutoDetect', 'yes' );
+            wp_redirect( remove_query_arg( 'gtsLanguageSource' ) );
+            exit;
+        }
+    }
+
+
+    function add_lang_detection_script() {
+
+        $accept_lang = null;
+        if( preg_match( '/^([a-z]{2}(-[A-Z]{3})?)/', $_SERVER['HTTP_ACCEPT_LANGUAGE'], $matches ) ) {
+
+            $accept_lang = $matches[1];
+            $message = com_gts_Language::get_by_code( $accept_lang )->localizationStrings[ 'AutoDetectionSwitchDialog' ];
+
+            // sanitize the message for insertion into the JS block as a string literal.
+            // backslashes are not allowed, and we fix up the quotes.
+            $message = str_replace( '\\', '\\\\', $message );
+            $message = str_replace( '\'', '\\\'', $message );
+
+            if( ! $_COOKIE['gts_skipAutoDetect'] ) {
+                echo <<<EOL
+            <!-- GTS Language Detection Script -->
+            <script type="text/javascript">
+
+              // if there's an existing on load function already, need to store
+              // it aside to make sure we don't break template's functionality.
+              var gts_existingOnLoad = window.onload;
+
+              window.onload = function() {
+
+                if(gts_existingOnLoad) {
+                  gts_existingOnLoad();
+                }
+
+                var gts_acceptLang = '$accept_lang';
+                var gts_message = '$message';
+                var gts_links = document.getElementsByTagName('link');
+
+                if(document.cookie.indexOf('gts_skipAutoDetect') < 0) {
+                  for(i = 0; i < gts_links.length; i++) {
+                    if(gts_links[i].rel == 'alternate' && gts_links[i].hreflang == gts_acceptLang) {
+                      if(confirm(gts_message)) {
+                        window.location.href = gts_links[i].href;
+                      }
+                      else {
+                        document.cookie = 'gts_skipAutoDetect=yes';
+                      }
+                    }
+                  }
+                }
+              };
+            </script>
+EOL;
             }
         }
     }
@@ -543,6 +616,9 @@ class GtsPluginWordpress extends GtsPlugin {
             }
             else {
                 $this->download_mofile( $language, 'twentyten' );
+                if( preg_match( '/^3\.[2-9]/', $wp_version ) ) {
+                    $this->download_mofile( $language, 'twentyeleven' );
+                }
             }
         }
     }
@@ -663,7 +739,7 @@ class GtsPluginWordpress extends GtsPlugin {
             }
         }
 
-        fclose( $fh );
+        @fclose( $fh );
 
         return $valid;
     }
@@ -1078,6 +1154,7 @@ class GtsPluginWordpress extends GtsPlugin {
         // not sure why, but this is getting a boolean true even when unchecked.  this
         // double-check fixes it.
         $input[GTS_SETTING_SYNCHRONOUS] = "on" == $input[GTS_SETTING_SYNCHRONOUS];
+        $input[GTS_SETTING_AUTO_DETECT_LANG] = "on" == $input[GTS_SETTING_AUTO_DETECT_LANG];
         $input[GTS_SETTING_USE_THEME] = "on" == $input[GTS_SETTING_USE_THEME];
 
         // if our form input is valid, then go ahead and toggle this setting...
@@ -1100,6 +1177,7 @@ class GtsPluginWordpress extends GtsPlugin {
                 case GTS_SETTING_API_KEY:
                 case GTS_SETTING_TARGET_HOSTS:
                 case GTS_SETTING_TARGET_LANGUAGES:
+                case GTS_SETTING_AUTO_DETECT_LANG:
                 case GTS_SETTING_SYNCHRONOUS:
                     break;
                 default:
@@ -1461,6 +1539,7 @@ define( 'GTS_SETTING_API_PORT', 'api_port' );
 define( 'GTS_SETTING_TARGET_LANGUAGES', 'target_languages' );
 define( 'GTS_SETTING_TARGET_HOSTS', 'target_hostnames' );
 define( 'GTS_SETTING_SYNCHRONOUS', 'synchronous' );
+define( 'GTS_SETTING_AUTO_DETECT_LANG', 'auto_detect_language' );
 define( 'GTS_SETTING_USE_THEME', 'use_translated_theme' );
 
 define( 'GTS_FETCH_LANGUAGES_CRONJOB', 'gts_cron_fetch_languages' );
