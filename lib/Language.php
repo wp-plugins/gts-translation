@@ -82,9 +82,12 @@ class com_gts_Language {
 
         $langs = array();
         $codes = array();
-        foreach ( $input as $lang ) {
-            array_push( $langs, $lang );
-            array_push( $codes, $lang->code );
+
+        if( is_array( $input ) ) {
+            foreach ( $input as $lang ) {
+                array_push( $langs, $lang );
+                array_push( $codes, $lang->code );
+            }
         }
     }
 

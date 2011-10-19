@@ -139,6 +139,10 @@ abstract class GtsPlugin {
 
     function notify_plugin_activation() {
 
+        // if we successfully activated, try to get the latest languages.
+        $this->fetch_and_cache_available_languages();
+
+
         // if we have these values, then our blog was previously active.  in that case,
         // we need to call back home to get the blog back into the editing queue...
         if( $this->config->blog_id && $this->config->api_key ) {
@@ -149,9 +153,6 @@ abstract class GtsPlugin {
             }
 
             $this->api_client->get_api_response( 'reactivateBlog', $request, true );
-
-            // if we successfully reactivated, try to get the latest languages.
-            $this->fetch_and_cache_available_languages();
         }
     }
 

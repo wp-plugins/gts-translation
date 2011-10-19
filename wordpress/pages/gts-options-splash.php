@@ -75,13 +75,37 @@ $url = "https://$host" . ( $port == 443 ? '' : ":$port") . "/api/setup/landing";
 ?>
 <div class="wrap" style="width: 60%">
 
+    <h2>GTS Translation</h2>
+
+<?php if( count( com_gts_Language::$ALL_LANGUAGES ) == 0 ) {
+
+    try {
+        $gts_plugin->fetch_and_cache_available_languages();
+    }
+    catch(Exception $e) {}
+}
+
+if ( $e ) {
+
+    ?>
+
+    <p>
+        In order to configure and activate the plugin, it first must download a list of available languages from GTS.  We encountered an
+        error while trying to fetch this information (technical reason : <?php echo $e->getMessage() ?>).
+    </p>
+
+    <p>
+        Click <a onclick="window.location.reload(); return false;" href="#">here</a> to try again.  If the problem persists, please contact
+         <a href="mailto:info@gts-translation.com">info@gts-translation.com</a>.
+    </p>
+
+<?php } else { ?>
+
     <form id="registrationForm" method="post" action="<?php echo $url; ?>" enctype="application/x-www-form-urlencoded;charset=utf-8">
     <?php foreach ( $args as $key => $value ) { ?>
         <input type="hidden" name="<?php echo $key ?>" value="<?php echo htmlentities( $value ) ?>"/>
     <?php } ?>
     </form>
-
-    <h2>GTS Translation</h2>
 
     <p>
         Before we can start translating your blog, you need to
@@ -93,5 +117,7 @@ $url = "https://$host" . ( $port == 443 ? '' : ":$port") . "/api/setup/landing";
         link provided in that mail to finalize the registration process.  If you cannot locate the email, please get in touch
         with <a href="mailto:info@gts-translation.com">info@gts-translation.com</a>.
     </p>
+
+<?php } ?>
 
 </div>

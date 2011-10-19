@@ -4,7 +4,7 @@ Tags: crowdsourcing, translate, translation, translations, translator, blog tran
 Donate Link: http://www.gts-translation.com/
 Requires at least: 2.9
 Tested up to: 3.2.1
-Stable tag: 1.1.9
+Stable tag: 1.2.0
 
 This plugin is guaranteed to drive more international traffic to your site by providing high quality translation, and SEO of your translated content.
 
@@ -177,6 +177,11 @@ Please see the *Security* section in the *Other Notes* tab.
 
 
 == Changelog ==
+
+= 1.2.0 =
+* Avoid possible warning message when language specs aren't available yet.
+* Download language specs at plugin activation.  Fixes problem reports with registration if languages aren't available yet.
+* Added error messaging and a method for manually initiating language download before showing reg screen.
 
 = 1.1.9 =
 * Option to auto-detect browser's language and display the website/blog in the user's language (after user is prompted).
