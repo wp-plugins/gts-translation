@@ -107,12 +107,81 @@ class GtsPluginWordpress extends GtsPlugin {
     function update_language_from_wp_query( $wp_query ) {
         if(!$this->language) {
             $this->language = $wp_query->query_vars[GtsLinkRewriter::$LANG_PARAM];
-
+			$this->fix_page_query($wp_query);
+            
             // now that we've read the language variable, we unset it.  otherwise, it breaks
             // the static home page feature b/c WP thinks the query isn't empty.
             unset($wp_query->query_vars[GtsLinkRewriter::$LANG_PARAM]);
         }
+		
+		
     }
+	
+	function fix_page_query($wp){
+		/**
+		 * [category_name] => muestra-pagina
+            [pagename] => /sample-page/yellow-page
+            [gts_pagepath] => /sample-page/yellow-page
+		 */
+		global $wpdb;
+		global $wp_rewrite;
+		
+		
+		if( //the fix is for this permalink structure only
+			$wp_rewrite->permalink_structure == '/%category%/%postname%/' 
+			//category_name should be set but nothing else
+			&& isset($wp->query_vars['category_name']) 
+			&& !isset($wp->query_vars['name']) 
+			&& !isset($wp->query_vars['page_name']) 
+			&& !isset($wp->query_vars['gts_pagepath'])
+			//should be a name without slashes
+			&& !preg_match("/\//", $wp->query_vars['category_name'])
+			//should not be a real category
+			&& !term_exists($wp->query_vars['category_name'])
+		  )
+		{
+			
+			$page_name = $wp->query_vars['category_name'];
+			
+			$lang = $this->language;
+			
+			$page_name = GtsUtils::orig_page_name($page_name, $lang);
+			
+			$page_name = "/$page_name";
+			
+			$wp->query_vars = array('pagename' => $page_name);
+			
+		}
+		else {
+			$rule = 'language/([a-z]{2}(?:\-[A-Z]{3})?)/(.+?)/([^/]+)(/[0-9]+)?/?$';
+			if(
+				$wp_rewrite->permalink_structure == '/%postname%/' 
+				&& '404' == $wp->query_vars['error']
+				&& preg_match("#$rule#", $wp->request, $matches)
+				&& count($matches)>=4
+			)
+			{
+				
+				$this->language = $matches[1];
+				$page_names = array_slice($matches, 2);
+				
+				foreach($page_names as $page_name){
+					$orig_slug = GtsUtils::orig_page_name($page_name, $this->language);
+					$orig_path .= "/" . $orig_slug;
+				}
+				
+				$wp->query_vars = array(
+										'page' => '',
+										'name' => '',
+										'pagename' => $orig_path, 
+										);
+				$wp->query_string = '';
+				$wp->matched_rule = $rule;
+				
+			}
+		}
+		
+	}
 
 
     function activate_plugin() {
@@ -324,10 +393,64 @@ class GtsPluginWordpress extends GtsPlugin {
 
     function register_admin_filters() {
     }
-
+	
+	function sv_init(){
+		GtsUtils::log(__METHOD__);
+		$this->sv_fix();
+	}
+	
+	function sv_wp_loaded(){
+		GtsUtils::log(__METHOD__);
+		$this->sv_fix();
+	}
+	
+	function sv_fix(){
+		global $wp;
+		GtsUtils::log(__METHOD__);
+		GtsUtils::log($wp);
+	}
 
     function register_actions() {
-
+    	
+		/*
+		 * $actions = array(
+'muplugins_loaded',
+'plugins_loaded',
+'sanitize_comment_cookies',
+'setup_theme',
+'load_textdomain',
+'after_setup_theme',
+'auth_cookie_malformed',
+'set_current_user',
+'init',
+'widgets_init',
+//'register_sidebar',
+//'wp_register_sidebar_widget',
+'wp_loaded',
+'parse_request',
+'send_headers',
+'parse_query',
+'pre_get_posts',
+'posts_selection',
+'wp',
+'template_redirect',
+'get_header',
+'wp_head',
+'wp_enqueue_scripts',
+'wp_print_styles',
+'wp_print_scripts',
+'get_template_part_loop',
+'loop_start',
+'the_post',
+'loop_end'
+);
+		 */
+		//add_action( 'init' , array($this, 'sv_init') );
+		//add_action( 'wp_loaded' , array($this, 'sv_wp_loaded') );
+		
+		
+		
+		
         add_action( 'parse_request' , array($this, 'update_language_from_wp_query') );
 
         add_action( 'widgets_init', create_function('', 'return register_widget("GTS_LanguageSelectWidget");') );

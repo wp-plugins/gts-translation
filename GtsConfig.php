@@ -33,7 +33,7 @@
 require_once("lib/Language.php");
 
 
-define( 'GTS_DEFAULT_API_HOST', in_array( $_SERVER['SERVER_NAME'], array( 'localhost', '127.0.0.1', 'sven.local') ) ? '127.0.0.1' : 'translate.gts-translation.com' );
+define( 'GTS_DEFAULT_API_HOST', in_array( $_SERVER['SERVER_NAME'], array( 'wp.local', 'localhost', '127.0.0.1', 'sven.local', 'wpmayor.local', 'gts-plugin.local') ) ? '127.0.0.1' : 'translate.gts-translation.com' );
 define( 'GTS_DEFAULT_API_PORT', GTS_DEFAULT_API_HOST == '127.0.0.1' ? 8080 : 80 );
 define( 'GTS_DEFAULT_SECURE_API_PORT', GTS_DEFAULT_API_HOST == '127.0.0.1' ? 8443 : 443 );
 
