@@ -1,10 +1,10 @@
 === GTS Translation Plugin ===
-Contributors: stevevls
+Contributors: stevevls, sergeyvlasov
 Tags: crowdsourcing, translate, translation, translations, translator, blog translator, free translation, language, languages
 Donate Link: http://www.gts-translation.com/
-Requires at least: 2.9
-Tested up to: 3.2.1
-Stable tag: 1.2.0
+Requires at least: 3.0
+Tested up to: 3.3.1
+Stable tag: 1.2.1
 
 This plugin is guaranteed to drive more international traffic to your site by providing high quality translation, and SEO of your translated content.
 
@@ -167,6 +167,7 @@ Unforunately, yes.  Here is a list of plugins that cause problems with the GTS P
 * ICanLocalize : inserts invalid HTML into the post body.
 * Recently Popular : directly selects posts from the DB, so plugin hooks are bypassed.
 * Another WordPress Classifieds Plugin (aka AWPCP) : Classifieds cannot be translated and URLs produce 404 for foreign languages.
+* Title-Case : doesn't properly support non-ASCII characters, resulting in capitalized letters in the middle of words.
 
 
 This list is a work in progress and may grow as we roll out to more users.
@@ -177,6 +178,14 @@ Please see the *Security* section in the *Other Notes* tab.
 
 
 == Changelog ==
+
+= 1.2.1 =
+* Added support for server-side fetching and translation of new posts when automatic publishing is stalled
+* Fix problem of broken links of translated pages:
+    * top level pages with '/%category%/%postname%/' permalink structure
+    * second(and more) level pages  with '/%postname%/' permalink structure
+* Fixes problem of GTS widget working incorrectly for Static Home Pages
+
 
 = 1.2.0 =
 * Avoid possible warning message when language specs aren't available yet.

@@ -131,4 +131,34 @@ class GtsUtils {
 
         return $str;
     }
+	
+	static function orig_page_name($page_name, $lang){
+		global $wpdb;
+		
+		$select_tran_page = "select * from {$wpdb->prefix}gts_translated_posts where post_slug='{$page_name}' and language='{$lang}'";
+		
+		$tran_page = $wpdb->get_row($select_tran_page);
+		
+		$orig_id = $tran_page->local_id;
+		
+		$select_orig_page = "select * from {$wpdb->posts} where id={$orig_id}";
+		
+		$orig_page = $wpdb->get_row($select_orig_page);
+		
+		$result = $orig_page->post_name;
+		
+		return $result;
+	}
+	
+	static function log($msg){
+		?>
+		<div>
+		<pre>
+			
+			<?php print_r($msg); ?>
+		
+		</pre>
+		</div>
+		<?php
+	}
 }

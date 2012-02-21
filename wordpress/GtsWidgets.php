@@ -168,16 +168,22 @@ class GTS_LanguageSelectWidget extends WP_Widget {
 
             // and if we have permalink support, there's a whole mess of special cases.  most
             // of them boil down to running the link through the plugin with the language overridden.
-
+			//GtsUtils::log(__LINE__);
+            
             $home_url = parse_url( $home );
+			//GtsUtils::log("home_url: $home_url");
+            
             $lang_url = parse_url( $gts_plugin->do_with_language( array($this, 'callback_get_home'), $lang->code ) );
+            //GtsUtils::log("lang_url: $lang_url");
+			
             $home = str_replace( $home_url['host'], $lang_url['host'], $home );
-
+			//GtsUtils::log("home: $home");
+			
             $homed_url = $this->get_homed_url( $home );
             $interesting_part = substr( $homed_url, strlen( $home ) );
 
             if( $is_source ) {
-
+				//GtsUtils::log(__LINE__);
                 $interesting_part = preg_replace( '/^language\/' . GtsPluginWordpress::$LANGUAGE_CODE_REGEX . '\/?/', '', $interesting_part);
 
                 if( is_tag() && get_query_var( 'tag' ) ) {
@@ -192,34 +198,60 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                 else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
                     $link = $gts_plugin->do_without_language( array( $this, 'callback_get_post_link' ) );
                 }
-                else if( is_page() ) {
+                else if( is_page()) {
+                	//GtsUtils::log(__LINE__);
                     $link = $gts_plugin->do_without_language( array( $this, 'callback_get_page_link' ) );
                 }
+				else if(is_home() && !is_front_page()) {//"posts page" when static home page used
+                	// GtsUtils::log(__LINE__);
+					// GtsUtils::log("home: $home");
+					// GtsUtils::log("interesting_part: $interesting_part");
+// 					
+					// GtsUtils::log("language: {$gts_plugin->language}");
+					$orig_interesting_part = GtsUtils::orig_page_name($interesting_part, $gts_plugin->language);
+					//GtsUtils::log("orig_interesting_part: $orig_interesting_part");
+                    //$link = $gts_plugin->do_without_language( array( $this, 'callback_get_page_link' ) );
+                    $link = trailingslashit($home . $orig_interesting_part);
+					//GtsUtils::log($link);
+					
+                }
+				
                 else {
                     $link = $home . $interesting_part;
                 }
             }
             else {
-
+				//GtsUtils::log(__LINE__);
                 if( is_tag() && get_query_var( 'tag' ) ) {
+                	//GtsUtils::log(__LINE__);
                     $link = $gts_plugin->do_with_language( array( $this, 'callback_get_tag_link' ), $lang->code);
                 }
                 else if ( is_category() && get_query_var( 'cat' ) && ( $gts_plugin->link_rewriter->original_category_id || $gts_plugin->link_rewriter->original_category_name ) ) {
+                    //GtsUtils::log(__LINE__);	
                     $link = $gts_plugin->do_with_language( array( $this, 'callback_get_category_link' ), $lang->code);
                 }
                 else if( is_tax() && get_query_var( 'taxonomy' ) && get_query_var( 'term' ) ) {
+                    //GtsUtils::log(__LINE__);	
                     $link = $gts_plugin->do_with_language( array( $this, 'callback_get_taxonomy_link' ), $lang->code);
                 }
                 else if( is_single() && ( get_query_var( 'p' ) || get_query_var( 'name' ) ) ) {
+                    //GtsUtils::log(__LINE__);	
                     $link = $gts_plugin->do_with_language( array( $this, 'callback_get_post_link' ), $lang->code);
                 }
                 else if( is_page() ) {
+                    //	GtsUtils::log(__LINE__);
+                    $link = $gts_plugin->do_with_language( array( $this, 'callback_get_page_link' ), $lang->code);
+                }
+				else if( is_home() && !is_front_page()) {//If you select a static Page as your frontpage (see is_front_page()), this tag will be applied to your "posts page".
+                    //	GtsUtils::log(__LINE__);
                     $link = $gts_plugin->do_with_language( array( $this, 'callback_get_page_link' ), $lang->code);
                 }
                 else if(!preg_match( '/^(language\/)' . GtsPluginWordpress::$LANGUAGE_CODE_REGEX . '(\/.*)?$/', $interesting_part, $matches ) ) {
+                    //	GtsUtils::log(__LINE__);
                     $link = $home . 'language/' . $lang->code . '/' . $interesting_part;
                 }
                 else {
+                    	//GtsUtils::log(__LINE__);
                     $link = $home . $matches[1] . $lang->code . $matches[3];
                 }
             }
@@ -231,7 +263,7 @@ class GTS_LanguageSelectWidget extends WP_Widget {
                 $link = remove_query_arg( 'language', $link );
             }
         }
-
+		//GtsUtils::log("link: $link");
         return $link;
     }
 
