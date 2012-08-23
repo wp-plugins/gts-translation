@@ -31,6 +31,7 @@
  */
 
 require_once("GtsLinkRewriter.php");
+require_once("GtsWidgetTranslator.php");
 
 
 class GtsPluginWordpress extends GtsPlugin {
@@ -51,6 +52,7 @@ class GtsPluginWordpress extends GtsPlugin {
     var $skip_config_check;
 
     var $link_rewriter;
+    var $widget_translator;
     var $theme_language;
 
 
@@ -61,6 +63,7 @@ class GtsPluginWordpress extends GtsPlugin {
         $this->wpdb = $wpdb;
 
         $this->link_rewriter = new GtsLinkRewriter();
+        $this->widget_translator = new GtsWidgetTranslator();
 
         // HACK ALERT:  the problem we're running into here is that the theme gets selected
         // before the query is parsed.  therefore, we have to pull out the language pre-emptively.
@@ -194,6 +197,7 @@ class GtsPluginWordpress extends GtsPlugin {
         }
 
         $this->link_rewriter->flush_rewrite_rules();
+        $this->widget_translator->on_activation();
 
         if( !is_dir( GTS_THEME_DIR ) ) {
             if( $this->is_plugin_directory_writable() ) {
@@ -275,6 +279,9 @@ class GtsPluginWordpress extends GtsPlugin {
         $this->register_filters();
         $this->register_actions();
 
+        // register widget translation plugin filters and actions
+        $this->widget_translator->init();
+        
         $this->link_rewriter->register_plugin_hooks();
     }
 
@@ -497,8 +504,11 @@ class GtsPluginWordpress extends GtsPlugin {
 
         add_filter( 'bloginfo', array($this, 'filter_translated_bloginfo'), 1, 2 );
 
-        add_filter( 'template', array($this, 'substitute_translated_template'), 1 );
-        add_filter( 'stylesheet', array($this, 'substitute_translated_stylesheet'), 1 );
+        global $wp_version;
+        if( preg_match( '/^2\./', $wp_version ) || preg_match( '/^3\.[0-3]/', $wp_version ) ) {
+            add_filter( 'template', array($this, 'substitute_translated_template'), 1 );
+            add_filter( 'stylesheet', array($this, 'substitute_translated_stylesheet'), 1 );
+        }
 
         add_filter( 'get_pages', array($this, 'substitute_translated_posts'), 1 );
 
@@ -1035,9 +1045,14 @@ EOL;
 
 
     function save_translated_named_option( $translated_option ) {
-
+        $option_is_widget = in_array($translated_option->name, GtsWidgetTranslator::getOptions());
+        if($option_is_widget)
+        {
+            $translated_option->value = serialize($this->widget_translator->processTranslatedOption($translated_option->value));
+        }
+        
         $columns = array(
-            "foreign_id" => $this->get_attribute_value( $translated_option, 'id' ),
+            "foreign_id" => $translated_option->id,
             "name" => $translated_option->name,
             "value" => $translated_option->value,
         );
@@ -1325,7 +1340,11 @@ EOL;
     function create_admin_menu() {
         add_menu_page( 'GTS Plugin Settings', 'GTS Settings', 'manage_options', GTS_MENU_NAME, array($this, 'settings_page') );
 
-        add_submenu_page( GTS_MENU_NAME, 'GTS Theme Settings', 'Translate Theme', 'manage_options', GTS_MENU_NAME . '-theme', array($this, 'settings_theme_page') );
+        global $wp_version;
+        if( preg_match( '/^2\./', $wp_version ) || preg_match( '/^3\.[0-3]/', $wp_version ) ) {
+            add_submenu_page( GTS_MENU_NAME, 'GTS Theme Settings', 'Translate Theme', 'manage_options', GTS_MENU_NAME . '-theme', array($this, 'settings_theme_page') );
+        }
+
         add_submenu_page( GTS_MENU_NAME, 'GTS Manage Translated Posts', 'Manage Posts', 'manage_options', GTS_MENU_NAME . '-posts', array($this, 'settings_posts_page') );
         add_submenu_page( GTS_MENU_NAME, 'GTS Localization Status', 'Localization Status', 'manage_options', GTS_MENU_NAME . '-localization', array($this, 'settings_localization_page') );
     }

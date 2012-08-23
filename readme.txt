@@ -3,8 +3,8 @@ Contributors: stevevls, sergeyvlasov
 Tags: crowdsourcing, translate, translation, translations, translator, blog translator, free translation, language, languages
 Donate Link: http://www.gts-translation.com/
 Requires at least: 3.0
-Tested up to: 3.3.1
-Stable tag: 1.2.1
+Tested up to: 3.4.1
+Stable tag: 1.2.2
 
 This plugin is guaranteed to drive more international traffic to your site by providing high quality translation, and SEO of your translated content.
 
@@ -178,6 +178,10 @@ Please see the *Security* section in the *Other Notes* tab.
 
 
 == Changelog ==
+
+= 1.2.2 =
+* Default WP widgets are now translated
+* Disabled translated theme support for WP 3.4+ due to incompatibilities with theme code reorganization in 3.4
 
 = 1.2.1 =
 * Added support for server-side fetching and translation of new posts when automatic publishing is stalled

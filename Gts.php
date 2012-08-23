@@ -36,7 +36,7 @@
 Plugin Name: GTS Translation
 Plugin URI: http://gts-translation.com/
 Description: This plugin is guaranteed to drive more international traffic to your site by providing high quality translation, and SEO of your translated content.
-Version: 1.2.1
+Version: 1.2.2
 Author: Steve van Loben Sels
 Author URI: http://gts-translation.com/
 
